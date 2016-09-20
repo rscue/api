@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{35CEEB5B-1D84-4A73-8228-27E20A6BC1CE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{91156542-69FC-4DE2-B8AD-925C56F4A911}"
+	ProjectSection(SolutionItems) = preProject
+		global.json = global.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F4CD6CA2-4704-44FE-8336-ED38F6CA1210}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Rscue.Api", "src\Rscue.Api\Rscue.Api.xproj", "{E893810C-5BB6-46F0-BDBB-9CB0BC649496}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E893810C-5BB6-46F0-BDBB-9CB0BC649496}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E893810C-5BB6-46F0-BDBB-9CB0BC649496}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E893810C-5BB6-46F0-BDBB-9CB0BC649496}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E893810C-5BB6-46F0-BDBB-9CB0BC649496}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E893810C-5BB6-46F0-BDBB-9CB0BC649496} = {35CEEB5B-1D84-4A73-8228-27E20A6BC1CE}
+	EndGlobalSection
+EndGlobal
