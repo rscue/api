@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Rscue.Api.Models;
 using Rscue.Api.ViewModels;
@@ -46,6 +47,32 @@ namespace Rscue.Api.Controllers
             }
 
             return await Task.FromResult(BadRequest());
+        }
+
+        [Route("{id}")]
+        public async Task<IActionResult> GetClient(string id)
+        {
+            var objId = new ObjectId(id);
+            var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == objId).SingleOrDefaultAsync();
+            if (client == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            var model = new ClientViewModel
+            {
+                VehicleType = client.VehicleType,
+                BoatModel = client.BoatModel,
+                Email = client.Email,
+                EngineType = client.EngineType,
+                HullSize = client.HullSize,
+                LastName = client.LastName,
+                Name = client.Name,
+                PhoneNumber = client.PhoneNumber,
+                RegistrationNumber = client.RegistrationNumber,
+                Id = client.Id.ToString()
+            };
+            return await Task.FromResult(Ok(model));
         }
     }
 }

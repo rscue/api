@@ -39,5 +39,43 @@ namespace Rscue.Api.Tests
 
             });
         }
+
+        [Fact]
+        public async Task CanGetClient()
+        {
+            var client = new ClientViewModel
+            {
+                BoatModel = "ho7",
+                Email = "i@h.com",
+                EngineType = "hoho hoho",
+                HullSize = HullSizeType.Large,
+                LastName = "glinsek",
+                Name = "nacho",
+                PhoneNumber = "123488",
+                VehicleType = VehicleType.MotorBoat
+            };
+            var id = String.Empty;
+
+            await OwinTester.Run(new Post<ClientViewModel, ClientViewModel>()
+            {
+                Uri = () => "client",
+                Content = () => client,
+                ExpectedStatusCode = HttpStatusCode.Created,
+                AssertResponseContent = (response, content) =>
+                {
+                    id = content.Id;
+                }
+
+            }, new Get<ClientViewModel>()
+            {
+                Uri = () => $"client/{id}",
+                ExpectedStatusCode = HttpStatusCode.OK,
+                AssertResponseContent = (response, content) =>
+                {
+                    Assert.NotNull(content);
+                    Assert.Equal(id, content.Id);
+                }
+            });
+        }
     }
 }
