@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Cors.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
+using Rscue.Api.Models;
 
 namespace Rscue.Api
 {
@@ -33,7 +35,10 @@ namespace Rscue.Api
                 var client = new MongoClient(Configuration.GetValue<string>("MongoDb:Url"));
                 var database = client.GetDatabase(Configuration.GetValue<string>("MongoDB:Database"));
                 return database;
+
             });
+            ConfigureMongoDb();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -51,6 +56,12 @@ namespace Rscue.Api
 
             app.UseMvc();
 
+        }
+
+        private void ConfigureMongoDb()
+        {
+            BsonSerializer.RegisterSerializer(new EnumSerializer<VehicleType>(BsonType.String));
+            BsonSerializer.RegisterSerializer(new EnumSerializer<HullSizeType>(BsonType.String));
         }
 
     }

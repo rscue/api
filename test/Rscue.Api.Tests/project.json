@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0-*",
+  "testRunner": "xunit",
+  "dependencies": {
+    "dotnet-test-xunit": "2.2.0-preview2-build1029",
+    "Microsoft.AspNetCore.Http.Abstractions": "1.0.0",
+    "Microsoft.Extensions.DependencyInjection.Abstractions": "1.0.0",
+    "xunit": "2.2.0-beta4-build3444",
+    "Microsoft.AspNetCore.TestHost": "1.0.0",
+    "Rscue.Api": "*",
+    "System.Runtime.Serialization.Xml": "4.1.1",
+    "Microsoft.AspNet.WebApi.Client": "5.2.3",
+    "Microsoft.NETCore.App": {
+      "version": "1.0.1",
+      "type": "platform"
+    }
+  },
+
+  "frameworks": {
+    "netcoreapp1.0": {
+      "imports": [
+        "dotnet5.6",
+        "portable-net45+win8"
+      ]
+    }
+  },
+  "buildOptions": {
+    "copyToOutput": {
+      "include": [ "xunit.runner.json" ],
+      "emitEntryPoint": true,
+      "debugType": "portable"
+    }
+  },
+  "tooling": {
+    "defaultNamespace": "Rscue.Api.Tests"
+  }
+}
