@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,8 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Rscue.Api.Models;
 
 namespace Rscue.Api
@@ -27,8 +30,11 @@ namespace Rscue.Api
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
-        {           
-            services.AddMvc();
+        {
+            services.AddMvc().AddJsonOptions(jsonOptions =>
+            {
+                jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());
+            });
 
             services.AddScoped<IMongoDatabase>(provider =>
             {
