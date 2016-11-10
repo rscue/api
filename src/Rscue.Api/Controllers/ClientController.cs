@@ -41,7 +41,7 @@ namespace Rscue.Api.Controllers
                 }
 
                 await _mongoDatabase.GetCollection<Client>("clients").ReplaceOneAsync(x => x.Id == client.Id, client);
-                return await Task.FromResult(Ok());
+                return await Task.FromResult(Ok(client));
             }
 
             return await Task.FromResult(BadRequest());
