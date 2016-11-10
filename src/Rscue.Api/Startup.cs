@@ -11,6 +11,7 @@ using MongoDB.Driver;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Rscue.Api.Models;
+using Rscue.Api.ViewModels;
 
 namespace Rscue.Api
 {
@@ -31,6 +32,7 @@ namespace Rscue.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
             services.AddMvc().AddJsonOptions(jsonOptions =>
             {
                 jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());

@@ -3,6 +3,10 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Rscue.Api.Models;
@@ -14,36 +18,30 @@ namespace Rscue.Api.Controllers
     public class ClientController : Controller
     {
         private readonly IMongoDatabase _mongoDatabase;
+        private readonly AzureSettings _appSettings;
 
-        public ClientController(IMongoDatabase mongoDatabase)
+        public ClientController(IMongoDatabase mongoDatabase, IOptions<AzureSettings> appSettings)
         {
             _mongoDatabase = mongoDatabase;
+            _appSettings = appSettings.Value;
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddClient([FromBody] ClientViewModel client)
+        public async Task<IActionResult> AddUpdateClient([FromBody] Client client)
         {
             if (ModelState.IsValid)
             {
-                var model = new Client
+                var exists = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == client.Id).SingleOrDefaultAsync();
+                if (exists == null)
                 {
-                    VehicleType = client.VehicleType,
-                    BoatModel = client.BoatModel,
-                    Email = client.Email,
-                    EngineType = client.EngineType,
-                    HullSize = client.HullSize,
-                    LastName = client.LastName,
-                    Name = client.Name,
-                    PhoneNumber = client.PhoneNumber,
-                    RegistrationNumber = client.RegistrationNumber
-                };
+                    await _mongoDatabase.GetCollection<Client>("clients").InsertOneAsync(client);
 
-                await _mongoDatabase.GetCollection<Client>("clients").InsertOneAsync(model);
+                    var uri = new Uri($"{Request.GetEncodedUrl()}/{client.Id}");
+                    return await Task.FromResult(Created(uri, client));
+                }
 
-                var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id}");
-                client.Id = model.Id.ToString();
-
-                return await Task.FromResult(Created(uri, client));
+                await _mongoDatabase.GetCollection<Client>("clients").ReplaceOneAsync(x => x.Id == client.Id, client);
+                return await Task.FromResult(Ok());
             }
 
             return await Task.FromResult(BadRequest());
@@ -52,27 +50,40 @@ namespace Rscue.Api.Controllers
         [Route("{id}")]
         public async Task<IActionResult> GetClient(string id)
         {
-            var objId = new ObjectId(id);
-            var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == objId).SingleOrDefaultAsync();
+            var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == id).SingleOrDefaultAsync();
             if (client == null)
             {
                 return await Task.FromResult(NotFound());
             }
 
-            var model = new ClientViewModel
+            return await Task.FromResult(Ok(client));
+        }
+
+        [Route("profilepic/{id}")]
+        [HttpPost]
+        public async Task<IActionResult> UpdateProfilePicture(string id, [FromBody] AvatarViewModel avatar)
+        {
+            var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == id).SingleOrDefaultAsync();
+            if (client == null)
             {
-                VehicleType = client.VehicleType,
-                BoatModel = client.BoatModel,
-                Email = client.Email,
-                EngineType = client.EngineType,
-                HullSize = client.HullSize,
-                LastName = client.LastName,
-                Name = client.Name,
-                PhoneNumber = client.PhoneNumber,
-                RegistrationNumber = client.RegistrationNumber,
-                Id = client.Id.ToString()
-            };
-            return await Task.FromResult(Ok(model));
+                return await Task.FromResult(NotFound());
+            }
+
+            var dataImage = avatar.ImageBase64.Split(',');
+            var imageBytes = Convert.FromBase64String(dataImage[1]);
+            var mimeString = dataImage[0].Split(':')[1].Split(';')[0];
+            var extension = mimeString.Split('/')[1];
+            var imageName = $"{id}.{extension}".Replace("|", "");
+            var cloudStorageAccount = CloudStorageAccount.Parse(_appSettings.StorageConnectionString);
+            var blobClient = cloudStorageAccount.CreateCloudBlobClient();
+            var blobContainer = blobClient.GetContainerReference("profilepics");
+            var blockBlob = blobContainer.GetBlockBlobReference(imageName);
+            await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
+
+            var updateDefinitition = new UpdateDefinitionBuilder<Client>().Set(x => x.AvatarUri, blockBlob.Uri);
+            await _mongoDatabase.GetCollection<Client>("clients").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+
+            return Ok(blockBlob.Uri);
         }
     }
 }
