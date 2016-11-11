@@ -70,6 +70,7 @@ namespace Rscue.Api
         {
             BsonSerializer.RegisterSerializer(new EnumSerializer<VehicleType>(BsonType.String));
             BsonSerializer.RegisterSerializer(new EnumSerializer<HullSizeType>(BsonType.String));
+            BsonSerializer.RegisterSerializer(new EnumSerializer<AssignmentStatus>(BsonType.String));
         }
 
     }

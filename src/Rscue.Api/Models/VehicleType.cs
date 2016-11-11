@@ -2,11 +2,11 @@ namespace Rscue.Api.Models
 {
     public enum VehicleType
     {
-        MotorBoat,
-        Boat,
-        Yacht,
-        SailingBoat,
-        WaterBike,
-        Cruise
+        MotorBoat = 1,
+        Boat = 2,
+        Yacht = 3,
+        SailingBoat = 4,
+        WaterBike = 4,
+        Cruise = 5
     }
 }

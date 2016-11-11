@@ -2,8 +2,8 @@ namespace Rscue.Api.Models
 {
     public enum HullSizeType
     {
-        Small,
-        Medium,
-        Large
+        Small = 1,
+        Medium = 2,
+        Large = 3
     }
 }
