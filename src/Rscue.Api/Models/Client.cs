@@ -63,5 +63,8 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public Uri AvatarUri { get; set; }
+
+        [BsonElement]
+        public string DeviceId { get; set; }
     }
 }

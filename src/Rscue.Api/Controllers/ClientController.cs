@@ -79,7 +79,23 @@ namespace Rscue.Api.Controllers
             var updateDefinitition = new UpdateDefinitionBuilder<Client>().Set(x => x.AvatarUri, blockBlob.Uri);
             await _mongoDatabase.GetCollection<Client>("clients").UpdateOneAsync(x => x.Id == id, updateDefinitition);
 
-            return Ok(blockBlob.Uri);
+            return await Task.FromResult(Ok(blockBlob.Uri));
+        }
+
+        [Route("registerdevice/{id}")]
+        [HttpPut]
+        public async Task<IActionResult> AddUpdateDeviceId(string id, [FromBody] DeviceRegistrationViewModel device)
+        {
+            var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == id).SingleOrDefaultAsync();
+            if (client == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            var updateDefinitition = new UpdateDefinitionBuilder<Client>().Set(x => x.DeviceId, device.DeviceId);
+            await _mongoDatabase.GetCollection<Client>("clients").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+
+            return await Task.FromResult(Ok());
         }
     }
 }
