@@ -44,6 +44,7 @@ namespace Rscue.Api.Controllers
         }
 
         [Route("{id}")]
+        [HttpGet]
         public async Task<IActionResult> GetClient(string id)
         {
             var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == id).SingleOrDefaultAsync();
