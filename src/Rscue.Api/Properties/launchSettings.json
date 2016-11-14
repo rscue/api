@@ -10,7 +10,7 @@
   "profiles": {
     "IIS Express": {
       "commandName": "IISExpress",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "api/values",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -18,7 +18,7 @@
     },
     "Rscue.Api": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "http://localhost:5000/api/values",
       "environmentVariables": {
         "ASPNETCORE_URLS": "http://0.0.0.0:5000/",
@@ -26,7 +26,7 @@
       }
     },
     "Docker": {
-      "launchBrowser": true,
+      "launchBrowser": false,
       "launchUrl": "http://localhost:{ServicePort}/api/values"
     }
   }
