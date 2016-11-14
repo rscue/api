@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rscue.Api.Models
@@ -34,7 +35,6 @@ namespace Rscue.Api.Models
         public string City { get; set; }
 
         [Required]
-        [MinLength(3)]
         [MaxLength(255)]
         [BsonElement]
         public string State { get; set; }
@@ -45,5 +45,9 @@ namespace Rscue.Api.Models
         [MaxLength(255)]
         [BsonElement]
         public string Email { get; set; }
+
+        [Required]
+        [BsonElement]
+        public Uri AvatarUri { get; set; }
     }
 }
