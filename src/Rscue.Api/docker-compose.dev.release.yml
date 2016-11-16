@@ -7,3 +7,15 @@ services:
     volumes:
       - ~/clrdbg:/clrdbg:ro
     entrypoint: tail -f /dev/null
+    environment:
+      - VIRTUAL_HOST=api.rscue.center
+      - VIRTUAL_NETWORK=nginx-proxy
+      - LETSENCRYPT_HOST=api.rscue.center
+      - LETSENCRYPT_EMAIL=ignacio@rscue.center
+    networks:
+      - proxy-tier
+
+networks:
+  proxy-tier:
+    external:
+      name: nginx-proxy
