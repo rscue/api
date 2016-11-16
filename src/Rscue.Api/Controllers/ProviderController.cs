@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.ViewModels;
+using Enumerable = System.Linq.Enumerable;
 
 namespace Rscue.Api.Controllers
 {
@@ -60,8 +63,8 @@ namespace Rscue.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProfilePicture(string id, [FromBody] AvatarViewModel avatar)
         {
-            var client = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == id).SingleOrDefaultAsync();
-            if (client == null)
+            var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == id).SingleOrDefaultAsync();
+            if (provider == null)
             {
                 return await Task.FromResult(NotFound());
             }
@@ -82,5 +85,34 @@ namespace Rscue.Api.Controllers
 
             return await Task.FromResult(Ok(blockBlob.Uri));
         }
+
+        [HttpGet]
+        [Route("{id}/assignmentssummary")]
+        public async Task<IActionResult> GetAssignmentsSummary(string id)
+        {
+            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
+            var beginDay = DateTimeOffset.Now - DateTimeOffset.Now.TimeOfDay;
+            var assignmentsCreated = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Created).CountAsync();
+            var assignmentsInProgress = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.InProgress).CountAsync();
+            var assignmentsCompleted = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Completed).CountAsync();
+            var assignmentsCancelled = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Cancelled).CountAsync();
+
+            var assignmentsSummary = new AssignmentsSummaryViewModel
+            {
+                Created = assignmentsCreated,
+                InProgress = assignmentsInProgress,
+                Completed = assignmentsCompleted,
+                Cancelled = assignmentsCancelled
+            };
+
+            return await Task.FromResult(Ok(assignmentsSummary));
+        }
+    }
+
+    public class AssignmentNotificationViewModel
+    {
+        public string Id { get; set; }
+        public DateTimeOffset CreationDateTime { get; set; }
+        public string ClientName { get; set; }
     }
 }
