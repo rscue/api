@@ -27,5 +27,7 @@ namespace Rscue.Api.ViewModels
         public AssignmentStatus Status { get; set; }
 
         public DateTimeOffset UpdateDateTime { get; set; }
+
+        public string ClientName { get; set; }
     }
 }

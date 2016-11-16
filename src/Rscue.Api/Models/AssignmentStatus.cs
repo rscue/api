@@ -3,8 +3,8 @@
     public enum AssignmentStatus
     {
         Created = 1,
-        InProgress = 3,
-        Completed = 4,
         Cancelled = 2,
+        InProgress = 3,
+        Completed = 4
     }
 }

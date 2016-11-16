@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -74,5 +76,35 @@ namespace Rscue.Api.Controllers
 
             return await Task.FromResult(Ok());
         }
+
+        [HttpGet]
+        [Route("search")]
+        public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
+        {
+            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
+            var builder = Builders<Assignment>.Filter;
+            var filter = builder.Empty;
+            if (search.StartDateTime.HasValue)
+            {
+                filter = filter & builder.Gte(x => x.CreationDateTime, search.StartDateTime.Value);
+            }
+            if (search.EndDateTime.HasValue)
+            {
+                filter = filter & builder.Lte(x => x.CreationDateTime, search.EndDateTime.Value);
+            }
+            if (search.Statuses != null)
+            {
+                filter = filter & builder.In(x => x.Status, search.Statuses);
+            }
+
+            var assignments = await collection.Find(filter).ToListAsync();
+
+            if (assignments.Count == 0)
+            {
+                return await Task.FromResult(NotFound());
+            }
+           
+            return await Task.FromResult(Ok(assignments));
+        }        
     }
 }
