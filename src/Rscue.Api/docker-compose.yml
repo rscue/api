@@ -4,11 +4,9 @@ services:
   mongodb:
     image: mongo:3.4
   rscue.api:
-    image: user/rscue.api${TAG}
+    image: rscue/api
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
       - mongodb
-    ports:
-      - "5000:5000"

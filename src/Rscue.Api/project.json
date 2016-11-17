@@ -49,7 +49,7 @@
       "Areas/**/Views",
       "appsettings*.json",
       "web.config",
-      "docker-compose.yml",
+      "docker-compose*.yml",
       "Dockerfile",
       ".dockerignore"
     ]

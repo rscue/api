@@ -1,15 +1,12 @@
 version: '2'
 
 services:
-  rscue.api:
-    labels:
-      - "com.microsoft.visualstudio.targetoperatingsystem=linux"
-    volumes:
-      - ~/clrdbg:/clrdbg:ro
-    entrypoint: tail -f /dev/null
+  mongodb:
+    networks:
+      - proxy-tier
+  rscue.api:    
     environment:
       - VIRTUAL_HOST=api.rscue.center
-      - VIRTUAL_NETWORK=nginx-proxy
       - LETSENCRYPT_HOST=api.rscue.center
       - LETSENCRYPT_EMAIL=ignacio@rscue.center
     networks:

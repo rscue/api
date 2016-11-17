@@ -18,3 +18,5 @@ services:
       - ~/.nuget/packages:/root/.nuget/packages:ro
       - ~/clrdbg:/clrdbg:ro
     entrypoint: tail -f /dev/null
+    ports:
+      - "5000:5000"
