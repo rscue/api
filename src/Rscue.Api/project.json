@@ -19,7 +19,8 @@
     "MongoDB.Driver": "2.3.0",
     "Microsoft.AspNetCore.Http.Extensions": "1.0.0",
     "Microsoft.AspNetCore.Diagnostics": "1.0.0",
-    "WindowsAzure.Storage": "7.2.1"
+    "WindowsAzure.Storage": "7.2.1",
+    "Auth0.ManagementApi": "3.5.2"
   },
   "tools": {
     "Microsoft.AspNetCore.Server.IISIntegration.Tools": "1.0.0-preview2-final"

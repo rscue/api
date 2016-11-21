@@ -8,6 +8,7 @@ using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
+using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 using Enumerable = System.Linq.Enumerable;
 

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
 using Rscue.Api.Models;
+using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers

@@ -11,6 +11,7 @@ using MongoDB.Driver;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Rscue.Api.Models;
+using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 
 namespace Rscue.Api
@@ -37,6 +38,7 @@ namespace Rscue.Api
                 options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             });
             services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
+            services.Configure<Auth0Settings>(Configuration.GetSection("Auth0Settings"));
             services.AddMvc().AddJsonOptions(jsonOptions =>
             {
                 jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());

@@ -1,4 +1,4 @@
-﻿namespace Rscue.Api.ViewModels
+﻿namespace Rscue.Api.Plumbing
 {
     public class AzureSettings
     {
