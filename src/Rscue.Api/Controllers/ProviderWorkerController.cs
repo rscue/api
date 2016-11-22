@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Auth0.Core;
 using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -8,35 +7,55 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
-    [Route("worker")]
-    public class WorkerController : Controller
+    [Route("provider/{providerId}/worker")]
+    public class ProviderWorkerController : Controller
     {
         private readonly IMongoDatabase _mongoDatabase;
         private readonly Auth0Settings _auth0Settings;
         private readonly AzureSettings _azureSettings;
+        private readonly IMongoCollection<Provider> _providerCollection;
 
-        public WorkerController(IMongoDatabase mongoDatabase, IOptions<Auth0Settings> appSettings, IOptions<AzureSettings> azureSettings )
+        public ProviderWorkerController(IMongoDatabase mongoDatabase, IOptions<Auth0Settings> appSettings, IOptions<AzureSettings> azureSettings )
         {
             _mongoDatabase = mongoDatabase;
             _auth0Settings = appSettings.Value;
             _azureSettings = azureSettings.Value;
+            _providerCollection = mongoDatabase.GetCollection<Provider>("providers");
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddWorker([FromBody]Worker model)
+        public async Task<IActionResult> AddWorker(string providerId, [FromBody]WorkerViewModel model)
         {
             try
             {
                 if (ModelState.IsValid)
                 {
+                    var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
+                    if (provider == null)
+                    {
+                        return await Task.FromResult(NotFound("PROVIDER"));
+                    }
+
                     model.Id = await CreateAuth0User(model);
-                    await _mongoDatabase.GetCollection<Worker>("workers").InsertOneAsync(model);
+                    var worker = new Worker
+                    {
+                        Id = model.Id,
+                        Provider = new MongoDBRef("providers", provider.Id),
+                        Name = model.Name,
+                        LastName = model.LastName,
+                        AvatarUri = model.AvatarUri,
+                        Email = model.Email,
+                        PhoneNumber = model.PhoneNumber
+                    };
+
+                    await _mongoDatabase.GetCollection<Worker>("workers").InsertOneAsync(worker);
 
                     var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id}");
                     return await Task.FromResult(Created(uri, model));
@@ -50,7 +69,7 @@ namespace Rscue.Api.Controllers
             }
         }
 
-        private async Task<string> CreateAuth0User(Worker model)
+        private async Task<string> CreateAuth0User(WorkerViewModel model)
         {
             var client = new ManagementApiClient(_auth0Settings.ManagementUserToken, new Uri($"https://{_auth0Settings.Domain}/api/v2"));
             var userRequest = new UserCreateRequest
@@ -67,7 +86,7 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateWorker(string id, [FromBody] Worker model)
+        public async Task<IActionResult> UpdateWorker(string providerId, string id, [FromBody] WorkerViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -77,9 +96,27 @@ namespace Rscue.Api.Controllers
                 if (exists == null)
                 {
                     return await Task.FromResult(NotFound());
-                }                
+                }
 
-                await collection.ReplaceOneAsync(x => x.Id == id, model);
+                var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
+                if (provider == null)
+                {
+                    return await Task.FromResult(NotFound("PROVIDER"));
+                }
+
+                var worker = new Worker
+                {
+                    Id = model.Id,
+                    Provider = new MongoDBRef("providers", provider.Id),
+                    Name = model.Name,
+                    LastName = model.LastName,
+                    AvatarUri = model.AvatarUri,
+                    Email = model.Email,
+                    PhoneNumber = model.PhoneNumber,
+                    DeviceId = exists.DeviceId
+                };
+
+                await collection.ReplaceOneAsync(x => x.Id == id, worker);
                 return await Task.FromResult(Ok());
             }
 
@@ -87,39 +124,59 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetWorkers()
+        public async Task<IActionResult> GetWorkers(string providerId)
         {
             var collection = _mongoDatabase.GetCollection<Worker>("workers");
-            var models = collection.AsQueryable();
+            var models = collection.AsQueryable().Where(x => x.Provider.Id == providerId);
 
             if (!await models.AnyAsync())
             {
                 return await Task.FromResult(NotFound());
             }
 
-            var list = await models.ToListAsync();
+            var list = models.Select( x => new WorkerViewModel
+            {
+              Id  = x.Id,
+              Name = x.Name,
+              LastName = x.LastName,
+              PhoneNumber = x.PhoneNumber,
+              AvatarUri = x.AvatarUri,
+              Email = x.Email,
+              DeviceId = x.DeviceId
+            });
             return await Task.FromResult(Ok(list));
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetWorker(string id)
+        public async Task<IActionResult> GetWorker(string providerId, string id)
         {
             var collection = _mongoDatabase.GetCollection<Worker>("workers");
-            var model = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
+            var worker = await collection.Find(x => x.Id == id && x.Provider.Id == providerId).SingleOrDefaultAsync();
 
-            if (model == null)
+            if (worker == null)
             {
                 return await Task.FromResult(NotFound());
             }
+
+            var model = new WorkerViewModel
+            {
+                Id = worker.Id,
+                Name = worker.Name,
+                DeviceId = worker.DeviceId,
+                PhoneNumber = worker.PhoneNumber,
+                AvatarUri = worker.AvatarUri,
+                Email = worker.Email,
+                LastName = worker.LastName
+            };
 
             return await Task.FromResult(Ok(model));
         }
 
         [Route("profilepic/{id}")]
         [HttpPost]
-        public async Task<IActionResult> UpdateProfilePicture(string id, [FromBody] AvatarViewModel avatar)
+        public async Task<IActionResult> UpdateProfilePicture(string providerId, string id, [FromBody] AvatarViewModel avatar)
         {
-            var provider = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == id).SingleOrDefaultAsync();
+            var provider = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == id && x.Provider.Id == providerId).SingleOrDefaultAsync();
             if (provider == null)
             {
                 return await Task.FromResult(NotFound());
