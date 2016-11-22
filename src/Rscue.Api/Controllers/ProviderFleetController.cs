@@ -1,39 +1,44 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
-    [Route("fleet")]
-    public class FleetController : Controller
+    [Route("provider/{providerId}/fleet")]
+    public class ProviderFleetController : Controller
     {
-        private readonly IMongoDatabase _mongoDatabase;
         private readonly IMongoCollection<Fleet> _collection;
+        private readonly IMongoCollection<Provider> _providerCollection;
 
-        public FleetController(IMongoDatabase mongoDatabase)
+        public ProviderFleetController(IMongoDatabase mongoDatabase)
         {
-            _mongoDatabase = mongoDatabase;
-            _collection = _mongoDatabase.GetCollection<Fleet>("fleets");
+            _collection = mongoDatabase.GetCollection<Fleet>("fleets");
+            _providerCollection = mongoDatabase.GetCollection<Provider>("providers");
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddFleet([FromBody] FleetViewModel fleet)
+        public async Task<IActionResult> AddFleet(string providerId, [FromBody] FleetViewModel fleet)
         {
             if (ModelState.IsValid)
             {
+                var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
+
+                if (provider == null)
+                {
+                    return await Task.FromResult(NotFound("PROVIDER"));
+                }
+
                 var model = new Fleet
                 {
                     BoatModel = fleet.BoatModel,
                     EngineType = fleet.EngineType,
                     Name = fleet.Name,
-                    RegistrationNumber = fleet.RegistrationNumber
+                    RegistrationNumber = fleet.RegistrationNumber,
+                    Provider = new MongoDBRef("providers", provider.Id)
                 };
 
                 await _collection.InsertOneAsync(model);
@@ -44,10 +49,17 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateFleet(string id, [FromBody] FleetViewModel fleet)
+        public async Task<IActionResult> UpdateFleet(string providerId, string id, [FromBody] FleetViewModel fleet)
         {
             if (ModelState.IsValid)
             {
+                var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
+
+                if (provider == null)
+                {
+                    return await Task.FromResult(NotFound("PROVIDER"));
+                }
+
                 var objId = ObjectId.Parse(id);
                 var exists = await _collection.Find(x => x.Id == objId).SingleOrDefaultAsync();
 
@@ -62,7 +74,8 @@ namespace Rscue.Api.Controllers
                     EngineType = fleet.EngineType,
                     Name = fleet.Name,
                     RegistrationNumber = fleet.RegistrationNumber,
-                    Id = exists.Id
+                    Id = exists.Id,
+                    Provider = new MongoDBRef("providers", provider.Id)
                 };
 
                 await _collection.ReplaceOneAsync(x => x.Id == objId, model);
@@ -73,10 +86,10 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetFleet(string id)
+        public async Task<IActionResult> GetFleet(string providerId, string id)
         {
             var objId = ObjectId.Parse(id);
-            var fleet = await _collection.Find(x => x.Id == objId).SingleOrDefaultAsync();
+            var fleet = await _collection.Find(x => x.Id == objId && x.Provider.Id == providerId).SingleOrDefaultAsync();
 
             if (fleet == null)
             {
@@ -96,9 +109,9 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetFleets()
+        public async Task<IActionResult> GetFleets(string providerId)
         {
-            var models = _collection.AsQueryable().ToList().Select(x => new FleetViewModel
+            var models = _collection.AsQueryable().Where(x => x.Provider.Id == providerId).ToList().Select(x => new FleetViewModel
             {
                 Id = x.Id.ToString(),
                 Name = x.Name,

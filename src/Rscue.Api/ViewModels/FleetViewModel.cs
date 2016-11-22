@@ -1,14 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
 
-namespace Rscue.Api.Models
+namespace Rscue.Api.ViewModels
 {
-    public class Fleet
+    public class FleetViewModel
     {
-        [BsonId]
-        public BsonObjectId Id { get; set; }
+        public string Id { get; set; }
 
         [Required]
         [MinLength(3)]
@@ -31,8 +28,5 @@ namespace Rscue.Api.Models
         [MaxLength(255)]
         [BsonElement]
         public string RegistrationNumber { get; set; }
-
-        [BsonElement]
-        public MongoDBRef Provider { get; set; }
     }
 }
