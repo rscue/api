@@ -15,6 +15,7 @@ using Rscue.Api.ViewModels;
 namespace Rscue.Api.Controllers
 {
     [Route("provider/{providerId}/worker")]
+    [Route("worker")]
     public class ProviderWorkerController : Controller
     {
         private readonly IMongoDatabase _mongoDatabase;
@@ -148,10 +149,10 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetWorker(string providerId, string id)
+        public async Task<IActionResult> GetWorker(string id)
         {
             var collection = _mongoDatabase.GetCollection<Worker>("workers");
-            var worker = await collection.Find(x => x.Id == id && x.Provider.Id == providerId).SingleOrDefaultAsync();
+            var worker = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
 
             if (worker == null)
             {
