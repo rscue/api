@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
@@ -23,7 +24,8 @@ namespace Rscue.Api.Controllers
         private readonly AzureSettings _azureSettings;
         private readonly IMongoCollection<Provider> _providerCollection;
 
-        public ProviderWorkerController(IMongoDatabase mongoDatabase, IOptions<Auth0Settings> appSettings, IOptions<AzureSettings> azureSettings )
+        public ProviderWorkerController(IMongoDatabase mongoDatabase, IOptions<Auth0Settings> appSettings,
+            IOptions<AzureSettings> azureSettings)
         {
             _mongoDatabase = mongoDatabase;
             _auth0Settings = appSettings.Value;
@@ -32,7 +34,7 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddWorker(string providerId, [FromBody]WorkerViewModel model)
+        public async Task<IActionResult> AddWorker(string providerId, [FromBody] WorkerViewModel model)
         {
             try
             {
@@ -72,7 +74,8 @@ namespace Rscue.Api.Controllers
 
         private async Task<string> CreateAuth0User(WorkerViewModel model)
         {
-            var client = new ManagementApiClient(_auth0Settings.ManagementUserToken, new Uri($"https://{_auth0Settings.Domain}/api/v2"));
+            var client = new ManagementApiClient(_auth0Settings.ManagementUserToken,
+                new Uri($"https://{_auth0Settings.Domain}/api/v2"));
             var userRequest = new UserCreateRequest
             {
                 Password = model.Password,
@@ -135,15 +138,15 @@ namespace Rscue.Api.Controllers
                 return await Task.FromResult(NotFound());
             }
 
-            var list = models.Select( x => new WorkerViewModel
+            var list = models.Select(x => new WorkerViewModel
             {
-              Id  = x.Id,
-              Name = x.Name,
-              LastName = x.LastName,
-              PhoneNumber = x.PhoneNumber,
-              AvatarUri = x.AvatarUri,
-              Email = x.Email,
-              DeviceId = x.DeviceId
+                Id = x.Id,
+                Name = x.Name,
+                LastName = x.LastName,
+                PhoneNumber = x.PhoneNumber,
+                AvatarUri = x.AvatarUri,
+                Email = x.Email,
+                DeviceId = x.DeviceId
             });
             return await Task.FromResult(Ok(list));
         }
@@ -175,9 +178,14 @@ namespace Rscue.Api.Controllers
 
         [Route("profilepic/{id}")]
         [HttpPost]
-        public async Task<IActionResult> UpdateProfilePicture(string providerId, string id, [FromBody] AvatarViewModel avatar)
+        public async Task<IActionResult> UpdateProfilePicture(string providerId, string id,
+            [FromBody] AvatarViewModel avatar)
         {
-            var provider = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == id && x.Provider.Id == providerId).SingleOrDefaultAsync();
+            var provider =
+                await
+                    _mongoDatabase.GetCollection<Worker>("workers")
+                        .Find(x => x.Id == id && x.Provider.Id == providerId)
+                        .SingleOrDefaultAsync();
             if (provider == null)
             {
                 return await Task.FromResult(NotFound());
@@ -198,6 +206,25 @@ namespace Rscue.Api.Controllers
             await _mongoDatabase.GetCollection<Worker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
 
             return await Task.FromResult(Ok(blockBlob.Uri));
+        }
+
+        [Route("{id}/location")]
+        [HttpPut]
+        public async Task<IActionResult> UpdateWorkerCurrentLocation(string id, LocationViewModel location)
+        {
+            var collection = _mongoDatabase.GetCollection<Worker>("workers");
+            var worker = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
+
+            if (worker == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            var updatedLocation = new GeoJson2DGeographicCoordinates(location.Longitude, location.Latitude);
+            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.Location, updatedLocation);
+            await collection.UpdateOneAsync(x => x.Id == id, updateDefinitition);
+
+            return await Task.FromResult(Ok());
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using MongoDB.Driver.GeoJsonObjectModel;
 using Rscue.Api.Models;
 
 namespace Rscue.Api.Models
@@ -43,5 +44,8 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public MongoDBRef Provider { get; set; }
+
+        [BsonElement]
+        public GeoJson2DGeographicCoordinates Location { get; set; }
     }
 }
