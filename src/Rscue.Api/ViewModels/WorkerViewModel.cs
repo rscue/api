@@ -1,5 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using Rscue.Api.Controllers;
+using Rscue.Api.Models;
 
 namespace Rscue.Api.ViewModels
 {
@@ -34,5 +36,9 @@ namespace Rscue.Api.ViewModels
         [MinLength(3)]
         [MaxLength(255)]
         public string Password { get; set; }
+
+        public LocationViewModel Location { get; set; }
+
+        public WorkerStatus Status { get; set; }
     }
 }

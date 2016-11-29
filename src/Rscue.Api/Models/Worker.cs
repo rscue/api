@@ -47,5 +47,8 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public GeoJson2DGeographicCoordinates Location { get; set; }
+
+        [BsonElement]
+        public WorkerStatus Status { get; set; }
     }
 }

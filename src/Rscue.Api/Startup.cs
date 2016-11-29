@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -10,6 +12,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Rscue.Api.Hubs;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
@@ -33,6 +36,7 @@ namespace Rscue.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddTransient<IUserIdProvider, HubUserIdProvider>();
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
@@ -53,12 +57,18 @@ namespace Rscue.Api
             });
             ConfigureMongoDb();
 
+            var settings = new JsonSerializerSettings {ContractResolver = new SignalRContractResolver()};
+            var serializer = JsonSerializer.Create(settings);
+            services.Add(new ServiceDescriptor(typeof(JsonSerializer), provider => serializer, ServiceLifetime.Transient));
+            services.AddSignalR();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
             app.UseCors("AllowAll");
+            app.UseStaticFiles();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -70,7 +80,8 @@ namespace Rscue.Api
             }
 
             app.UseMvc();
-
+            app.UseWebSockets();
+            app.UseSignalR();
         }
 
         private void ConfigureMongoDb()
@@ -78,6 +89,7 @@ namespace Rscue.Api
             BsonSerializer.RegisterSerializer(new EnumSerializer<VehicleType>(BsonType.String));
             BsonSerializer.RegisterSerializer(new EnumSerializer<HullSizeType>(BsonType.String));
             BsonSerializer.RegisterSerializer(new EnumSerializer<AssignmentStatus>(BsonType.String));
+            BsonSerializer.RegisterSerializer(new EnumSerializer<WorkerStatus>(BsonType.String));
         }
 
     }
