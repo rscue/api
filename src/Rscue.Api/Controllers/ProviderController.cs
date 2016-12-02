@@ -93,10 +93,10 @@ namespace Rscue.Api.Controllers
         {
             var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
             var beginDay = DateTimeOffset.Now - DateTimeOffset.Now.TimeOfDay;
-            var assignmentsCreated = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Created).CountAsync();
-            var assignmentsInProgress = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.InProgress).CountAsync();
-            var assignmentsCompleted = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Completed).CountAsync();
-            var assignmentsCancelled = await collection.Find(x => x.Provider.Id == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Cancelled).CountAsync();
+            var assignmentsCreated = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && (x.Status == AssignmentStatus.Created || x.Status == AssignmentStatus.Assigned)).CountAsync();
+            var assignmentsInProgress = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.InProgress).CountAsync();
+            var assignmentsCompleted = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Completed).CountAsync();
+            var assignmentsCancelled = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Cancelled).CountAsync();
 
             var assignmentsSummary = new AssignmentsSummaryViewModel
             {

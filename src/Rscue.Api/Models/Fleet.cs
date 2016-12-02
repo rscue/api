@@ -33,6 +33,6 @@ namespace Rscue.Api.Models
         public string RegistrationNumber { get; set; }
 
         [BsonElement]
-        public MongoDBRef Provider { get; set; }
+        public string ProviderId { get; set; }
     }
 }

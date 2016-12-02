@@ -29,5 +29,9 @@ namespace Rscue.Api.ViewModels
         public DateTimeOffset UpdateDateTime { get; set; }
 
         public string ClientName { get; set; }
+
+        public string WorkerId { get; set; }
+
+        public string WorkerName { get; set; }
     }
 }

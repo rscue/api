@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
@@ -55,7 +56,7 @@ namespace Rscue.Api.Controllers
                     var worker = new Worker
                     {
                         Id = model.Id,
-                        Provider = new MongoDBRef("providers", provider.Id),
+                        ProviderId = provider.Id,
                         Name = model.Name,
                         LastName = model.LastName,
                         AvatarUri = model.AvatarUri,
@@ -107,7 +108,7 @@ namespace Rscue.Api.Controllers
                     return await Task.FromResult(NotFound());
                 }
 
-                var provider = await _providerCollection.Find(x => x.Id == exists.Provider.Id).SingleOrDefaultAsync();
+                var provider = await _providerCollection.Find(x => x.Id == exists.ProviderId).SingleOrDefaultAsync();
                 if (provider == null)
                 {
                     return await Task.FromResult(NotFound("PROVIDER"));
@@ -116,7 +117,7 @@ namespace Rscue.Api.Controllers
                 var worker = new Worker
                 {
                     Id = model.Id,
-                    Provider = new MongoDBRef("providers", provider.Id),
+                    ProviderId = provider.Id,
                     Name = model.Name,
                     LastName = model.LastName,
                     AvatarUri = model.AvatarUri,
@@ -126,7 +127,7 @@ namespace Rscue.Api.Controllers
                     Status = model.Status
                 };
 
-                var providerId = worker.Provider.Id.ToString();
+                var providerId = worker.ProviderId;
                 _connectionManager.GetHubContext<WorkersHub>().Clients.User(providerId).updateWorkerStatus(id, model.Status.ToString());
 
 
@@ -138,10 +139,15 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetWorkers(string providerId)
+        public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<WorkerStatus> status)
         {
             var collection = _mongoDatabase.GetCollection<Worker>("workers");
-            var models = collection.Find(x => x.Provider.Id == providerId);
+            var models = collection.AsQueryable().Where(x => x.ProviderId == providerId);
+
+            if (status.Any())
+            {
+                models = models.Where(x => status.Contains(x.Status));
+            }
 
             if (!await models.AnyAsync())
             {
@@ -203,7 +209,7 @@ namespace Rscue.Api.Controllers
             var provider =
                 await
                     _mongoDatabase.GetCollection<Worker>("workers")
-                        .Find(x => x.Id == id && x.Provider.Id == providerId)
+                        .Find(x => x.Id == id && x.ProviderId == providerId)
                         .SingleOrDefaultAsync();
             if (provider == null)
             {
@@ -239,7 +245,7 @@ namespace Rscue.Api.Controllers
                 return await Task.FromResult(NotFound());
             }
 
-            var providerId = worker.Provider.Id.ToString();
+            var providerId = worker.ProviderId;
             _connectionManager.GetHubContext<WorkersHub>().Clients.User(providerId).updateWorkerLocation(id, location);
 
             var updatedLocation = new GeoJson2DGeographicCoordinates(location.Longitude, location.Latitude);

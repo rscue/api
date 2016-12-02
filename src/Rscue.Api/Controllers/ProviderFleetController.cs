@@ -38,7 +38,7 @@ namespace Rscue.Api.Controllers
                     EngineType = fleet.EngineType,
                     Name = fleet.Name,
                     RegistrationNumber = fleet.RegistrationNumber,
-                    Provider = new MongoDBRef("providers", provider.Id)
+                    ProviderId = provider.Id
                 };
 
                 await _collection.InsertOneAsync(model);
@@ -75,7 +75,7 @@ namespace Rscue.Api.Controllers
                     Name = fleet.Name,
                     RegistrationNumber = fleet.RegistrationNumber,
                     Id = exists.Id,
-                    Provider = new MongoDBRef("providers", provider.Id)
+                    ProviderId = provider.Id
                 };
 
                 await _collection.ReplaceOneAsync(x => x.Id == objId, model);
@@ -89,7 +89,7 @@ namespace Rscue.Api.Controllers
         public async Task<IActionResult> GetFleet(string providerId, string id)
         {
             var objId = ObjectId.Parse(id);
-            var fleet = await _collection.Find(x => x.Id == objId && x.Provider.Id == providerId).SingleOrDefaultAsync();
+            var fleet = await _collection.Find(x => x.Id == objId && x.ProviderId == providerId).SingleOrDefaultAsync();
 
             if (fleet == null)
             {
@@ -111,7 +111,7 @@ namespace Rscue.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetFleets(string providerId)
         {
-            var models = _collection.AsQueryable().Where(x => x.Provider.Id == providerId).ToList().Select(x => new FleetViewModel
+            var models = _collection.AsQueryable().Where(x => x.ProviderId == providerId).ToList().Select(x => new FleetViewModel
             {
                 Id = x.Id.ToString(),
                 Name = x.Name,

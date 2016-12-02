@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -7,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
+using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.ViewModels;
+using Enumerable = System.Linq.Enumerable;
 
 namespace Rscue.Api.Controllers
 {
@@ -39,14 +40,25 @@ namespace Rscue.Api.Controllers
                     return await Task.FromResult(NotFound($"Provider with id {assignment.ProviderId} was not found"));
                 }
 
+                var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == assignment.WorkerId).SingleOrDefaultAsync();
+                if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
+                {
+                    return await Task.FromResult(NotFound($"Worker with id {assignment.WorkerId} was not found"));
+                }
+
                 var model = new Assignment
                 {
-                    Provider = new MongoDBRef("providers", assignment.ProviderId),
-                    Client = new MongoDBRef("clients", assignment.ClientId),
+                    ProviderId = assignment.ProviderId,
+                    ClientId = assignment.ClientId,
                     CreationDateTime = assignment.CreationDateTime,
                     Location = new GeoJson2DGeographicCoordinates(assignment.Longitude, assignment.Latitude),
                     Status = assignment.Status
                 };
+
+                if (!string.IsNullOrWhiteSpace(assignment.WorkerId))
+                {
+                    model.WorkerId = assignment.WorkerId;
+                }
 
                 await _mongoDatabase.GetCollection<Assignment>("assignments").InsertOneAsync(model);
                 var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
@@ -61,8 +73,7 @@ namespace Rscue.Api.Controllers
         [Route("{id}/status")]
         public async Task<IActionResult> UpdateAssignment(string id, [FromBody] AssignmentViewModel assignment)
         {
-            var objId = ObjectId.Parse(id);
-            var model = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == objId).SingleOrDefaultAsync();
+            var model = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == id).SingleOrDefaultAsync();
 
             if (model == null)
             {
@@ -72,7 +83,7 @@ namespace Rscue.Api.Controllers
             model.Status = assignment.Status;
             model.UpdateDateTime = assignment.UpdateDateTime;
 
-            await _mongoDatabase.GetCollection<Assignment>("assignments").ReplaceOneAsync(x => x.Id == objId, model);
+            await _mongoDatabase.GetCollection<Assignment>("assignments").ReplaceOneAsync(x => x.Id == id, model);
 
             return await Task.FromResult(Ok());
         }
@@ -82,29 +93,37 @@ namespace Rscue.Api.Controllers
         public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
         {
             var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
-            var builder = Builders<Assignment>.Filter;
-            var filter = builder.Empty;
+            var workerCollection = _mongoDatabase.GetCollection<Worker>("workers");
+            var clientCollection = _mongoDatabase.GetCollection<Client>("clients");
+
+            var query = from assignment in collection.AsQueryable()
+                        join worker in workerCollection on assignment.WorkerId equals worker.Id into workers
+                        join client in clientCollection on assignment.ClientId equals client.Id into clients
+                        select new AssignmentViewModel
+                        {
+                            Id = assignment.Id,
+                            WorkerName = workers.First().Name + " " + workers.First().LastName,
+                            ClientName = clients.First().Name + " " + clients.First().LastName,
+                            CreationDateTime = assignment.CreationDateTime,
+                            Status = assignment.Status
+                        };
+
             if (search.StartDateTime.HasValue)
             {
-                filter = filter & builder.Gte(x => x.CreationDateTime, search.StartDateTime.Value);
+                query = query.Where(x => x.CreationDateTime > search.StartDateTime.Value);
             }
             if (search.EndDateTime.HasValue)
             {
-                filter = filter & builder.Lte(x => x.CreationDateTime, search.EndDateTime.Value);
+                query = query.Where(x => x.CreationDateTime < search.EndDateTime.Value);
             }
-            if (search.Statuses != null)
+            if (search.Statuses != null && search.Statuses.Any())
             {
-                filter = filter & builder.In(x => x.Status, search.Statuses);
+                query = query.Where(x => search.Statuses.Contains(x.Status));
             }
 
-            var assignments = await collection.Find(filter).ToListAsync();
+            var assignments = await query.ToListAsync();
 
-            if (assignments.Count == 0)
-            {
-                return await Task.FromResult(NotFound());
-            }
-           
             return await Task.FromResult(Ok(assignments));
-        }        
+        }
     }
 }

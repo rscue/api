@@ -23,7 +23,6 @@ namespace Rscue.Api.Models
         [BsonElement]
         public string LastName { get; set; }
 
-        [Required]
         [EmailAddress]
         [MinLength(3)]
         [MaxLength(255)]

@@ -43,7 +43,7 @@ namespace Rscue.Api.Models
         public string DeviceId { get; set; }
 
         [BsonElement]
-        public MongoDBRef Provider { get; set; }
+        public string ProviderId { get; set; }
 
         [BsonElement]
         public GeoJson2DGeographicCoordinates Location { get; set; }

@@ -1,21 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 
 namespace Rscue.Api.Models
 {
     public class Assignment
-    {
+    {        
         [BsonId]
-        public BsonObjectId Id { get; set; }
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
 
         [BsonElement]
-        public MongoDBRef Client { get; set; }
+        public string ClientId { get; set; }
 
         [BsonElement]
-        public MongoDBRef Provider { get; set; }
+        public string ProviderId { get; set; }
 
         [BsonElement]
         [BsonRepresentation(BsonType.Document)]
@@ -30,5 +31,13 @@ namespace Rscue.Api.Models
         [BsonElement]
         [BsonRepresentation(BsonType.Document)]
         public DateTimeOffset UpdateDateTime { get; set; }
+
+        [BsonElement]
+        public string WorkerId { get; set; }
+
+        //[BsonIgnore]
+        //[BsonElement]
+        //[BsonRepresentation(BsonType.Array)]
+        public List<Worker> Worker { get; set; }
     }
 }
