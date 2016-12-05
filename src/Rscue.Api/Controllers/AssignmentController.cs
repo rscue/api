@@ -169,7 +169,8 @@ namespace Rscue.Api.Controllers
                             assignment.CreationDateTime,
                             assignment.Status,
                             assignment.Location,
-                            ClientAvatarUri = clients.First().AvatarUri
+                            ClientAvatarUri = clients.First().AvatarUri,
+                            ClientId = clients.First().Id
                         };
 
             var result = await query.SingleOrDefaultAsync();
@@ -188,7 +189,8 @@ namespace Rscue.Api.Controllers
                 WorkerName = result.WorkerName,
                 Latitude = result.Location.Latitude,
                 Longitude = result.Location.Longitude,
-                ClientAvatarUri = result.ClientAvatarUri == null ? "assets/img/nobody.jpg" : result.ClientAvatarUri.ToString()
+                ClientAvatarUri = result.ClientAvatarUri == null ? "assets/img/nobody.jpg" : result.ClientAvatarUri.ToString(),
+                ClientId = result.ClientId
             };
 
             return await Task.FromResult(Ok(model));
