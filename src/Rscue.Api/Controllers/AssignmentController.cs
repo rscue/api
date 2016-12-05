@@ -3,13 +3,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
+using Microsoft.Extensions.Options;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
+using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
-using Enumerable = System.Linq.Enumerable;
 
 namespace Rscue.Api.Controllers
 {
@@ -17,10 +18,12 @@ namespace Rscue.Api.Controllers
     public class AssignmentController : Controller
     {
         private readonly IMongoDatabase _mongoDatabase;
+        private readonly ProviderAppSettings _providerAppSettings;
 
-        public AssignmentController(IMongoDatabase mongoDatabase)
+        public AssignmentController(IMongoDatabase mongoDatabase, IOptions<ProviderAppSettings> providerAppSettings)
         {
             _mongoDatabase = mongoDatabase;
+            _providerAppSettings = providerAppSettings.Value;
         }
 
         [HttpPost]
@@ -63,6 +66,13 @@ namespace Rscue.Api.Controllers
                 await _mongoDatabase.GetCollection<Assignment>("assignments").InsertOneAsync(model);
                 var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
                 assignment.Id = model.Id.ToString();
+
+                if (worker != null)
+                {
+                    var payload = PushNotificationHelpers.GetNewAssignmentPayload(worker.DeviceId, model.Id);
+                    PushNotificationHelpers.Send(_providerAppSettings.ApplicationId, _providerAppSettings.SenderId, payload);
+                }
+
                 return await Task.FromResult(Created(uri, assignment));
             }
 
@@ -78,6 +88,19 @@ namespace Rscue.Api.Controllers
             if (model == null)
             {
                 return await Task.FromResult(NotFound());
+            }
+
+            var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == assignment.WorkerId).SingleOrDefaultAsync();
+            if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
+            {
+                return await Task.FromResult(NotFound($"Worker with id {assignment.WorkerId} was not found"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(assignment.WorkerId))
+            {
+                model.WorkerId = assignment.WorkerId;
+                var payload = PushNotificationHelpers.GetNewAssignmentPayload(worker.DeviceId, model.Id);
+                PushNotificationHelpers.Send(_providerAppSettings.ApplicationId, _providerAppSettings.SenderId, payload);
             }
 
             model.Status = assignment.Status;
@@ -124,6 +147,69 @@ namespace Rscue.Api.Controllers
             var assignments = await query.ToListAsync();
 
             return await Task.FromResult(Ok(assignments));
+        }
+
+        [HttpGet]
+        [Route("{id}")]
+        public async Task<IActionResult> GetAssignment(string id)
+        {
+            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
+            var workerCollection = _mongoDatabase.GetCollection<Worker>("workers");
+            var clientCollection = _mongoDatabase.GetCollection<Client>("clients");
+
+            var query = from assignment in collection.AsQueryable()
+                        where assignment.Id == id
+                        join worker in workerCollection on assignment.WorkerId equals worker.Id into workers
+                        join client in clientCollection on assignment.ClientId equals client.Id into clients
+                        select new
+                        {
+                            assignment.Id,
+                            WorkerName = workers.First().Name + " " + workers.First().LastName,
+                            ClientName = clients.First().Name + " " + clients.First().LastName,
+                            assignment.CreationDateTime,
+                            assignment.Status,
+                            assignment.Location,
+                            ClientAvatarUri = clients.First().AvatarUri
+                        };
+
+            var result = await query.SingleOrDefaultAsync();
+
+            if (result == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            var model = new AssignmentViewModel
+            {
+                Id = result.Id,
+                Status = result.Status,
+                CreationDateTime = result.CreationDateTime,
+                ClientName = result.ClientName,
+                WorkerName = result.WorkerName,
+                Latitude = result.Location.Latitude,
+                Longitude = result.Location.Longitude,
+                ClientAvatarUri = result.ClientAvatarUri == null ? "assets/img/nobody.jpg" : result.ClientAvatarUri.ToString()
+            };
+
+            return await Task.FromResult(Ok(model));
+        }
+
+        [HttpPut]
+        [Route("{id}/status/{status}")]
+        public async Task<IActionResult> UpdateAssignmentStatus(string id, AssignmentStatus status)
+        {
+            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
+            var assignment = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
+
+            if (assignment == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            assignment.Status = status;
+            await collection.ReplaceOneAsync(x => x.Id == id, assignment);
+
+            return await Task.FromResult(Ok());
         }
     }
 }

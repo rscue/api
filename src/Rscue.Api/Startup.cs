@@ -43,6 +43,7 @@ namespace Rscue.Api
             });
             services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
             services.Configure<Auth0Settings>(Configuration.GetSection("Auth0Settings"));
+            services.Configure<ProviderAppSettings>(Configuration.GetSection("ProviderApp"));
             services.AddMvc().AddJsonOptions(jsonOptions =>
             {
                 jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());

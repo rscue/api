@@ -254,5 +254,21 @@ namespace Rscue.Api.Controllers
 
             return await Task.FromResult(Ok());
         }
+
+        [Route("{id}/registerdevice")]
+        [HttpPut]
+        public async Task<IActionResult> AddUpdateDeviceId(string id, [FromBody] DeviceRegistrationViewModel device)
+        {
+            var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == id).SingleOrDefaultAsync();
+            if (worker == null)
+            {
+                return await Task.FromResult(NotFound());
+            }
+
+            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.DeviceId, device.DeviceId);
+            await _mongoDatabase.GetCollection<Worker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+
+            return await Task.FromResult(Ok());
+        }
     }
 }
