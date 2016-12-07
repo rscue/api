@@ -188,7 +188,9 @@ namespace Rscue.Api.Controllers
                             ClientAvatarUri = clients.First().AvatarUri,
                             ClientId = clients.First().Id,
                             assignment.WorkerId,
-                            assignment.ProviderId
+                            assignment.ProviderId,
+                            assignment.Comments,
+                            assignment.ImageUrls
                         };
 
             var result = await query.SingleOrDefaultAsync();
@@ -209,7 +211,9 @@ namespace Rscue.Api.Controllers
                 Longitude = result.Location.Longitude,
                 ClientAvatarUri = result.ClientAvatarUri == null ? "assets/img/nobody.jpg" : result.ClientAvatarUri.ToString(),
                 ClientId = result.ClientId,
-                ProviderId = result.ProviderId
+                ProviderId = result.ProviderId,
+                Comments = result.Comments,
+                ImageUrls = result.ImageUrls
             };
 
             return await Task.FromResult(Ok(model));
@@ -229,17 +233,23 @@ namespace Rscue.Api.Controllers
             var imageBytes = Convert.FromBase64String(dataImage[1]);
             var mimeString = dataImage[0].Split(':')[1].Split(';')[0];
             var extension = mimeString.Split('/')[1];
-            var imageName = $"{new Guid().ToString("N")}.{extension}";
+            var imageName = $"{Guid.NewGuid().ToString("N")}.{extension}";
             var cloudStorageAccount = CloudStorageAccount.Parse(_azureSettings.StorageConnectionString);
             var blobClient = cloudStorageAccount.CreateCloudBlobClient();
             var blobContainer = blobClient.GetContainerReference("incidentpics");
             var blockBlob = blobContainer.GetBlockBlobReference(imageName);
             await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
 
-            var imageUrls = assignment.ImageUrls ?? new List<string>();
-            imageUrls.Add(blockBlob.Uri.ToString());
-            var updateDefinitition = new UpdateDefinitionBuilder<Assignment>().Set(x => x.ImageUrls, imageUrls);
-            await _mongoDatabase.GetCollection<Assignment>("assignments").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+            UpdateResult updateResult;
+            do
+            {
+                assignment = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == id).SingleOrDefaultAsync();
+                var imageUrls = assignment.ImageUrls ?? new List<string>();
+                imageUrls.Add(blockBlob.Uri.ToString());
+                var updateDefinitition = new UpdateDefinitionBuilder<Assignment>().Set(x => x.ImageUrls, imageUrls).Set(x => x.UpdateDateTime, DateTimeOffset.Now);
+                updateResult = await _mongoDatabase.GetCollection<Assignment>("assignments").UpdateOneAsync(x => x.Id == id 
+                && x.UpdateDateTime == assignment.UpdateDateTime, updateDefinitition);
+            } while (updateResult.ModifiedCount == 0);
 
             return await Task.FromResult(Ok(blockBlob.Uri));
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Rscue.Api.Models;
 
@@ -37,5 +38,7 @@ namespace Rscue.Api.ViewModels
         public string ClientAvatarUri { get; set; }
 
         public string Comments { get; set; }
+
+        public IList<string> ImageUrls { get; set; }
     }
 }
