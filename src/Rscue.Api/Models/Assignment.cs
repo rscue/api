@@ -7,7 +7,7 @@ using MongoDB.Driver.GeoJsonObjectModel;
 namespace Rscue.Api.Models
 {
     public class Assignment
-    {        
+    {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string Id { get; set; }
@@ -35,9 +35,10 @@ namespace Rscue.Api.Models
         [BsonElement]
         public string WorkerId { get; set; }
 
-        //[BsonIgnore]
-        //[BsonElement]
-        //[BsonRepresentation(BsonType.Array)]
-        public List<Worker> Worker { get; set; }
+        [BsonElement]
+        public string Comments { get; set; }
+
+        [BsonElement]
+        public IList<string> ImageUrls { get; set; }
     }
 }

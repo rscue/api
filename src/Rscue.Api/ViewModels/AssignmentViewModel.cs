@@ -35,5 +35,7 @@ namespace Rscue.Api.ViewModels
         public string WorkerName { get; set; }
 
         public string ClientAvatarUri { get; set; }
+
+        public string Comments { get; set; }
     }
 }
