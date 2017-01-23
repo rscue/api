@@ -7,26 +7,17 @@ namespace Rscue.Api.ViewModels
     {
         public string Id { get; set; }
 
-        [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string Name { get; set; }
 
-        [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string BoatModel { get; set; }
 
-        [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string EngineType { get; set; }
 
-        [MinLength(3)]
-        [MaxLength(255)]
-        [BsonElement]
         public string RegistrationNumber { get; set; }
+
+        public double? FuelCostPerKm { get; set; }
     }
 }

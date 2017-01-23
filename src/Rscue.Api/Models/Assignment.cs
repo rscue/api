@@ -30,7 +30,7 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         [BsonRepresentation(BsonType.Document)]
-        public DateTimeOffset UpdateDateTime { get; set; }
+        public DateTimeOffset? UpdateDateTime { get; set; }
 
         [BsonElement]
         public string WorkerId { get; set; }
@@ -40,5 +40,8 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public IList<string> ImageUrls { get; set; }
+
+        [BsonElement]
+        public TimeSpan? EstimatedTimeOfArrival { get; set; }
     }
 }

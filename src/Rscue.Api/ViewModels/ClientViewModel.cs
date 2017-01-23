@@ -1,61 +1,45 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using MongoDB.Bson.Serialization.Attributes;
 using Rscue.Api.Models;
 
-namespace Rscue.Api.Models
+namespace Rscue.Api.ViewModels
 {
-    public class Client
+    public class ClientViewModel
     {
-        [BsonId]
-        [Required]
         public string Id { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string Name { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string LastName { get; set; }
 
-        [EmailAddress]
-        [BsonElement]
+        [EmailAddress(ErrorMessage = "Debe proporcionar un email válido")]
         public string Email { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string PhoneNumber { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public VehicleType VehicleType { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public HullSizeType HullSize { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string BoatModel { get; set; }
 
-        [Required]
-        [BsonElement]
+        [Required(ErrorMessage = "El campo es requerido")]
         public string EngineType { get; set; }
 
-        [BsonElement]
         public string RegistrationNumber { get; set; }
 
-        [BsonElement]
         public Uri AvatarUri { get; set; }
 
-        [BsonElement]
         public string DeviceId { get; set; }
 
-        [BsonElement]
         public string InsuranceCompany { get; set; }
 
-        [BsonElement]
         public string PolicyNumber { get; set; }
     }
 }

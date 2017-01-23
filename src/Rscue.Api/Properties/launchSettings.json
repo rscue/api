@@ -27,8 +27,12 @@
       "launchUrl": "http://localhost:{ServicePort}/api/values"
     },
     "dotnet watch": {
+      "environmentVariables": {
+        "ASPNETCORE_URLS": "http://0.0.0.0:5000/",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
       "executablePath": "C:\\Program Files\\dotnet\\dotnet.exe",
       "commandLineArgs": "watch run"
-    }
+    }    
   }
 }

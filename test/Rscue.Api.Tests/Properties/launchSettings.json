@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "dotnet watch test": {
+      "environmentVariables": {
+        "ASPNETCORE_URLS": "http://0.0.0.0:5000/",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "executablePath": "C:\\Program Files\\dotnet\\dotnet.exe",
+      "commandLineArgs": "watch test"
+    }
+  }
+}

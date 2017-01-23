@@ -11,28 +11,23 @@ namespace Rscue.Api.Models
         public BsonObjectId Id { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         public string Name { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string BoatModel { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string EngineType { get; set; }
 
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string RegistrationNumber { get; set; }
 
         [BsonElement]
         public string ProviderId { get; set; }
+
+        [BsonElement]
+        public double? FuelCostPerKm { get; set; }
     }
 }

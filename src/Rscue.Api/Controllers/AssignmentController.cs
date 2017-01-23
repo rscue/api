@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Driver.Linq;
@@ -31,6 +30,10 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(AssignmentViewModel), 201)]
+        [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddAssignment([FromBody] AssignmentViewModel assignment)
         {
             if (ModelState.IsValid)
@@ -38,19 +41,19 @@ namespace Rscue.Api.Controllers
                 var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == assignment.ClientId).SingleOrDefaultAsync();
                 if (client == null)
                 {
-                    return await Task.FromResult(NotFound($"Client with id {assignment.ClientId} was not found"));
+                    return await Task.FromResult(NotFound($"El cliente con el id {assignment.ClientId} no existe"));
                 }
 
                 var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == assignment.ProviderId).SingleOrDefaultAsync();
                 if (provider == null)
                 {
-                    return await Task.FromResult(NotFound($"Provider with id {assignment.ProviderId} was not found"));
+                    return await Task.FromResult(NotFound($"El proveedor con id {assignment.ProviderId} no existe"));
                 }
 
                 var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == assignment.WorkerId).SingleOrDefaultAsync();
                 if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
                 {
-                    return await Task.FromResult(NotFound($"Worker with id {assignment.WorkerId} was not found"));
+                    return await Task.FromResult(NotFound($"El trabajador con id {assignment.WorkerId} no existe"));
                 }
 
                 var model = new Assignment
@@ -59,7 +62,8 @@ namespace Rscue.Api.Controllers
                     ClientId = assignment.ClientId,
                     CreationDateTime = assignment.CreationDateTime,
                     Location = new GeoJson2DGeographicCoordinates(assignment.Longitude, assignment.Latitude),
-                    Status = assignment.Status
+                    Status = assignment.Status,
+                    EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
                 };
 
                 if (!string.IsNullOrWhiteSpace(assignment.WorkerId))
@@ -80,11 +84,15 @@ namespace Rscue.Api.Controllers
                 return await Task.FromResult(Created(uri, assignment));
             }
 
-            return await Task.FromResult(BadRequest());
+            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
         }
 
         [HttpPut]
         [Route("{id}")]
+        [ProducesResponseType(typeof(void), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> UpdateAssignment(string id, [FromBody] AssignmentViewModel assignment)
         {
             if (ModelState.IsValid)
@@ -95,7 +103,7 @@ namespace Rscue.Api.Controllers
 
                 if (model == null)
                 {
-                    return await Task.FromResult(NotFound());
+                    return await Task.FromResult(NotFound($"No existe misión con el id {assignment.Id}"));
                 }
 
                 var worker = await _mongoDatabase.GetCollection<Worker>("workers")
@@ -104,10 +112,11 @@ namespace Rscue.Api.Controllers
 
                 if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
                 {
-                    return await Task.FromResult(NotFound($"Worker with id {assignment.WorkerId} was not found"));
+                    return await Task.FromResult(NotFound($"El trabajador con id {assignment.WorkerId} no existe"));
                 }
 
-                if (!string.IsNullOrWhiteSpace(assignment.WorkerId))
+                if ((worker != null && worker.Id != assignment.WorkerId && !string.IsNullOrWhiteSpace(assignment.WorkerId)) 
+                    || !string.IsNullOrWhiteSpace(assignment.WorkerId))
                 {
                     model.WorkerId = assignment.WorkerId;
                     var payload = PushNotificationHelpers.GetNewAssignmentPayload(worker.DeviceId, model.Id);
@@ -118,17 +127,21 @@ namespace Rscue.Api.Controllers
                 model.Status = assignment.Status;
                 model.UpdateDateTime = assignment.UpdateDateTime;
                 model.Comments = assignment.Comments;
+                model.EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival;
 
                 await _mongoDatabase.GetCollection<Assignment>("assignments").ReplaceOneAsync(x => x.Id == id, model);
 
                 return await Task.FromResult(Ok());
             }
 
-            return await Task.FromResult(BadRequest());
+            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
         }
 
         [HttpGet]
         [Route("search")]
+        [ProducesResponseType(typeof(IEnumerable<AssignmentSearchResponseViewModel>), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
         {
             var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
@@ -138,13 +151,14 @@ namespace Rscue.Api.Controllers
             var query = from assignment in collection.AsQueryable()
                         join worker in workerCollection on assignment.WorkerId equals worker.Id into workers
                         join client in clientCollection on assignment.ClientId equals client.Id into clients
-                        select new AssignmentViewModel
+                        select new AssignmentSearchResponseViewModel
                         {
                             Id = assignment.Id,
                             WorkerName = workers.First().Name + " " + workers.First().LastName,
                             ClientName = clients.First().Name + " " + clients.First().LastName,
                             CreationDateTime = assignment.CreationDateTime,
-                            Status = assignment.Status
+                            Status = assignment.Status,
+                            EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
                         };
 
             if (search.StartDateTime.HasValue)
@@ -162,11 +176,19 @@ namespace Rscue.Api.Controllers
 
             var assignments = await query.ToListAsync();
 
+            if (!query.Any())
+            {
+                return await Task.FromResult(NotFound("No hay misiones"));
+            }
+
             return await Task.FromResult(Ok(assignments));
         }
 
         [HttpGet]
         [Route("{id}")]
+        [ProducesResponseType(typeof(AssignmentResponseViewModel), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetAssignment(string id)
         {
             var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
@@ -190,17 +212,19 @@ namespace Rscue.Api.Controllers
                             assignment.WorkerId,
                             assignment.ProviderId,
                             assignment.Comments,
-                            assignment.ImageUrls
+                            assignment.ImageUrls,
+                            assignment.UpdateDateTime,
+                            assignment.EstimatedTimeOfArrival
                         };
 
             var result = await query.SingleOrDefaultAsync();
 
             if (result == null)
             {
-                return await Task.FromResult(NotFound());
+                return await Task.FromResult(NotFound($"No existe la misión con Id {id}"));
             }
 
-            var model = new AssignmentViewModel
+            var model = new AssignmentResponseViewModel
             {
                 Id = result.Id,
                 Status = result.Status,
@@ -213,7 +237,10 @@ namespace Rscue.Api.Controllers
                 ClientId = result.ClientId,
                 ProviderId = result.ProviderId,
                 Comments = result.Comments,
-                ImageUrls = result.ImageUrls
+                ImageUrls = result.ImageUrls,
+                WorkerId = result.WorkerId,
+                UpdateDateTime = result.UpdateDateTime,
+                EstimatedTimeOfArrival = result.EstimatedTimeOfArrival
             };
 
             return await Task.FromResult(Ok(model));
@@ -221,12 +248,15 @@ namespace Rscue.Api.Controllers
 
         [Route("{id}/incidentpic")]
         [HttpPost]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddIncidentImage(string id, [FromBody] AvatarViewModel avatar)
         {
             var assignment = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == id).SingleOrDefaultAsync();
             if (assignment == null)
             {
-                return await Task.FromResult(NotFound());
+                return await Task.FromResult(NotFound($"No existe misión con id {id}"));
             }
 
             var dataImage = avatar.ImageBase64.Split(',');
@@ -247,7 +277,7 @@ namespace Rscue.Api.Controllers
                 var imageUrls = assignment.ImageUrls ?? new List<string>();
                 imageUrls.Add(blockBlob.Uri.ToString());
                 var updateDefinitition = new UpdateDefinitionBuilder<Assignment>().Set(x => x.ImageUrls, imageUrls).Set(x => x.UpdateDateTime, DateTimeOffset.Now);
-                updateResult = await _mongoDatabase.GetCollection<Assignment>("assignments").UpdateOneAsync(x => x.Id == id 
+                updateResult = await _mongoDatabase.GetCollection<Assignment>("assignments").UpdateOneAsync(x => x.Id == id
                 && x.UpdateDateTime == assignment.UpdateDateTime, updateDefinitition);
             } while (updateResult.ModifiedCount == 0);
 

@@ -13,26 +13,18 @@ namespace Rscue.Api.Models
         public string Id { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string Name { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string LastName { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string PhoneNumber { get; set; }
 
         [Required]
-        [MinLength(3)]
-        [MaxLength(255)]
         [BsonElement]
         public string Email { get; set; }
 

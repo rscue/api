@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +19,7 @@ using Rscue.Api.Hubs;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace Rscue.Api
 {
@@ -63,26 +67,44 @@ namespace Rscue.Api
             services.Add(new ServiceDescriptor(typeof(JsonSerializer), provider => serializer, ServiceLifetime.Transient));
             services.AddSignalR();
 
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info { Title = "Rscue center API", Version = "v1" });
+                c.DescribeAllEnumsAsStrings();
+                c.OperationFilter<SecurityRequirementsOperationFilter>();
+                c.SchemaFilter<AutoRestSchemaFilter>();
+            });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            app.UseCors("AllowAll");
-            app.UseStaticFiles();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                loggerFactory.AddDebug();
+                loggerFactory.AddConsole().AddDebug();
             }
             else
             {
                 app.UseStatusCodePages();
             }
-
+            app.UseCors("AllowAll");
+            app.UseStaticFiles();            
+            app.UseSwagger(c =>
+            {
+                c.RouteTemplate = "docs/{documentName}/swagger.json";
+            });
+            app.UseSwaggerUi(c =>
+            {
+                c.RoutePrefix = "docs";
+                c.SwaggerEndpoint("/docs/v1/swagger.json", "Rscue center API V1");
+                c.EnabledValidator();
+            });
             app.UseMvc();
             app.UseWebSockets();
             app.UseSignalR();
+            
         }
 
         private void ConfigureMongoDb()

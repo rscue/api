@@ -1,9 +1,13 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Rscue.Api.Models;
+using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
@@ -21,6 +25,10 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(FleetViewModel), 201)]
+        [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddFleet(string providerId, [FromBody] FleetViewModel fleet)
         {
             if (ModelState.IsValid)
@@ -29,7 +37,7 @@ namespace Rscue.Api.Controllers
 
                 if (provider == null)
                 {
-                    return await Task.FromResult(NotFound("PROVIDER"));
+                    return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
                 }
 
                 var model = new Fleet
@@ -42,13 +50,19 @@ namespace Rscue.Api.Controllers
                 };
 
                 await _collection.InsertOneAsync(model);
-                return await Task.FromResult(Ok());
+                var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
+                fleet.Id = model.Id.ToString();
+                return await Task.FromResult(Created(uri, fleet));
             }
 
-            return await Task.FromResult(BadRequest());
+            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
         }
 
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(void), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> UpdateFleet(string providerId, string id, [FromBody] FleetViewModel fleet)
         {
             if (ModelState.IsValid)
@@ -57,7 +71,7 @@ namespace Rscue.Api.Controllers
 
                 if (provider == null)
                 {
-                    return await Task.FromResult(NotFound("PROVIDER"));
+                    return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
                 }
 
                 var objId = ObjectId.Parse(id);
@@ -65,7 +79,7 @@ namespace Rscue.Api.Controllers
 
                 if (exists == null)
                 {
-                    return await Task.FromResult(NotFound());
+                    return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
                 }
 
                 var model = new Fleet
@@ -82,10 +96,13 @@ namespace Rscue.Api.Controllers
                 return await Task.FromResult(Ok());
             }
 
-            return await Task.FromResult(BadRequest());
+            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
         }
 
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(FleetViewModel), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetFleet(string providerId, string id)
         {
             var objId = ObjectId.Parse(id);
@@ -93,7 +110,7 @@ namespace Rscue.Api.Controllers
 
             if (fleet == null)
             {
-                return await Task.FromResult(NotFound());
+                return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
             }
 
             var model = new FleetViewModel
@@ -109,6 +126,9 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<FleetViewModel>), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetFleets(string providerId)
         {
             var models = _collection.AsQueryable().Where(x => x.ProviderId == providerId).ToList().Select(x => new FleetViewModel
@@ -122,7 +142,7 @@ namespace Rscue.Api.Controllers
 
             if (!models.Any())
             {
-                return await Task.FromResult(NotFound());
+                return await Task.FromResult(NotFound("No hay resultados"));
             }
 
             return await Task.FromResult(Ok(models));
