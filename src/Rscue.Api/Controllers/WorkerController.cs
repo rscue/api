@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR.Infrastructure;
 using MongoDB.Driver;
@@ -13,6 +14,7 @@ using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
+    [Authorize]
     [Route("worker")]
     public class WorkerController : Controller
     {

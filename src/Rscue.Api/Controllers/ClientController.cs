@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
+    [Authorize]
     [Route("client")]
     public class ClientController : Controller
     {

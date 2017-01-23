@@ -72,6 +72,7 @@ namespace Rscue.Api
                 c.SwaggerDoc("v1", new Info { Title = "Rscue center API", Version = "v1" });
                 c.DescribeAllEnumsAsStrings();
                 c.OperationFilter<SecurityRequirementsOperationFilter>();
+                c.DocumentFilter<SecurityRequirementsOperationFilter>();
                 c.SchemaFilter<AutoRestSchemaFilter>();
             });
 
@@ -91,6 +92,11 @@ namespace Rscue.Api
             }
             app.UseCors("AllowAll");
             app.UseStaticFiles();            
+            app.UseJwtBearerAuthentication(new JwtBearerOptions
+            {
+                Audience = Configuration["Auth0Settings:ApiIdentifier"],
+                Authority = $"https://{Configuration["Auth0Settings:Domain"]}/"
+            });
             app.UseSwagger(c =>
             {
                 c.RouteTemplate = "docs/{documentName}/swagger.json";

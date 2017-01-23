@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,7 @@ using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
+    [Authorize]
     [Route("provider")]
     public class ProviderController : Controller
     {

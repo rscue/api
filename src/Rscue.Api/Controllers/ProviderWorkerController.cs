@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
+    [Authorize]
     [Route("provider/{providerId}/worker")]
     public class ProviderWorkerController : Controller
     {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -12,6 +13,7 @@ using Rscue.Api.ViewModels;
 
 namespace Rscue.Api.Controllers
 {
+    [Authorize]
     [Route("provider/{providerId}/fleet")]
     public class ProviderFleetController : Controller
     {
