@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Localization;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -81,6 +83,8 @@ namespace Rscue.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
+            var secret = Encoding.UTF8.GetBytes(Configuration["Auth0Settings:Secret"]);
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -94,8 +98,12 @@ namespace Rscue.Api
             app.UseStaticFiles();            
             app.UseJwtBearerAuthentication(new JwtBearerOptions
             {
-                Audience = Configuration["Auth0Settings:ApiIdentifier"],
-                Authority = $"https://{Configuration["Auth0Settings:Domain"]}/"
+                TokenValidationParameters =
+                {
+                    ValidIssuer = $"https://{Configuration["Auth0Settings:Domain"]}/",
+                    ValidAudience = Configuration["Auth0Settings:ClientId"],
+                    IssuerSigningKey = new SymmetricSecurityKey(secret)
+                }
             });
             app.UseSwagger(c =>
             {
