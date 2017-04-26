@@ -1,20 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{35CEEB5B-1D84-4A73-8228-27E20A6BC1CE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{91156542-69FC-4DE2-B8AD-925C56F4A911}"
-	ProjectSection(SolutionItems) = preProject
-		global.json = global.json
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{F4CD6CA2-4704-44FE-8336-ED38F6CA1210}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Rscue.Api", "src\Rscue.Api\Rscue.Api.xproj", "{E893810C-5BB6-46F0-BDBB-9CB0BC649496}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rscue.Api", "src\Rscue.Api\Rscue.Api.csproj", "{E893810C-5BB6-46F0-BDBB-9CB0BC649496}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Rscue.Api.Tests", "test\Rscue.Api.Tests\Rscue.Api.Tests.xproj", "{2833082A-BF42-4C14-9708-71BC22184377}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rscue.Api.Tests", "test\Rscue.Api.Tests\Rscue.Api.Tests.csproj", "{2833082A-BF42-4C14-9708-71BC22184377}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -109,7 +109,7 @@ namespace Rscue.Api
             {
                 c.RouteTemplate = "docs/{documentName}/swagger.json";
             });
-            app.UseSwaggerUi(c =>
+            app.UseSwaggerUI(c =>
             {
                 c.RoutePrefix = "docs";
                 c.SwaggerEndpoint("/docs/v1/swagger.json", "Rscue center API V1");
