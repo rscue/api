@@ -26,21 +26,19 @@ namespace Rscue.Api.Controllers
 
         public AssignmentController(IAssignmentRepository assignmentRepository, INotificationServices notificationServices, IImageStore imageStore)
         {
-            _assignmentRepository = assignmentRepository;
-            _notificationServices = notificationServices;
-            _imageStore = imageStore;
+            _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+            _notificationServices = notificationServices ?? throw new ArgumentNullException(nameof(notificationServices));
+            _imageStore = imageStore ?? throw new ArgumentNullException(nameof(imageStore));
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(AssignmentViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
-        [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddAssignment([FromBody] AssignmentViewModel assignmentViewModel)
+        public async Task<IActionResult> NewAssignment([FromBody] AssignmentViewModel assignmentViewModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-            var location = (string)null;
             var assignment = new Assignment
             {
                 ProviderId = assignmentViewModel.ProviderId,
@@ -56,11 +54,10 @@ namespace Rscue.Api.Controllers
 
             if (outcome == RepositoryOutcome.Created)
             {
-                location = $"{Request.GetEncodedUrl()}/{newAssignment.Id.ToString()}";
                 await _notificationServices.NotifyAssignmentWorkerAsync(newAssignment);
             }
 
-            return this.FromRepositoryOutcome(outcome, message, newAssignment, location);
+            return this.FromRepositoryOutcome(outcome, message, newAssignment, nameof(GetAssignment), new { id = newAssignment.Id });
         }
 
         [HttpPut]
@@ -111,8 +108,8 @@ namespace Rscue.Api.Controllers
                         _ => new AssignmentResponseViewModel
                         {
                             Id =_.Id,
-                            WorkerName = _.Worker.Name + " " + _.Worker.LastName,
-                            ClientName = _.Client.Name + " " + _.Client.LastName,
+                            WorkerName = _.Worker?.Name + " " + _.Worker?.LastName,
+                            ClientName = _.Client?.Name + " " + _.Client?.LastName,
                             CreationDateTime = _.CreationDateTime,
                             Status = _.Status,
                             EstimatedTimeOfArrival = _.EstimatedTimeOfArrival
@@ -123,7 +120,7 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
-        [Route("{id}")]
+        [Route("{id}", Name = "GetAssignment")]
         [ProducesResponseType(typeof(AssignmentResponseViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
@@ -141,11 +138,11 @@ namespace Rscue.Api.Controllers
                         Id = assignment.Id,
                         Status = assignment.Status,
                         CreationDateTime = assignment.CreationDateTime,
-                        ClientName = assignment.Client.Name + " " + assignment.Client.LastName,
-                        WorkerName = assignment.Worker.Name + " " + assignment.Worker.LastName,
-                        Latitude = assignment.Location.Latitude,
-                        Longitude = assignment.Location.Longitude,
-                        ClientAvatarUri = assignment.Client.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client.AvatarUri.ToString(),
+                        ClientName = assignment.Client?.Name + " " + assignment.Client?.LastName,
+                        WorkerName = assignment.Worker?.Name + " " + assignment.Worker?.LastName,
+                        Latitude = assignment.Location?.Latitude ?? 0d,
+                        Longitude = assignment.Location?.Longitude ?? 0d,
+                        ClientAvatarUri = assignment.Client?.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client?.AvatarUri?.ToString(),
                         ClientId = assignment.ClientId,
                         ProviderId = assignment.ProviderId,
                         Comments = assignment.Comments,

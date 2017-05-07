@@ -17,7 +17,7 @@ namespace Rscue.Api.Tests
             rnd = new Random();
         }
 
-        [Fact]
+        //[Fact]
         public async Task CanAddAssignment()
         {
             var assignment = new AssignmentViewModel

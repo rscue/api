@@ -23,22 +23,26 @@ namespace Rscue.Api.Services
                                                                                                                      bool populateWorker = false, 
                                                                                                                      CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (id == null) throw new ArgumentNullException(nameof(id));
+
             var result = await _mongoDatabase.Assignments()
                                              .Find(x => x.Id == id)
                                              .SingleOrDefaultAsync(cancellationToken);
-
-            if (populateClient)
+            if (result != null)
             {
-                result.Client = await _mongoDatabase.Clients()
-                                                    .Find(x => x.Id == result.ClientId)
-                                                    .SingleOrDefaultAsync(cancellationToken);
-            }
+                if (populateClient)
+                {
+                    result.Client = await _mongoDatabase.Clients()
+                                                        .Find(x => x.Id == result.ClientId)
+                                                        .SingleOrDefaultAsync(cancellationToken);
+                }
 
-            if (populateWorker)
-            {
-                result.Worker = await _mongoDatabase.Workers()
-                                                    .Find(x => x.Id == result.WorkerId)
-                                                    .SingleOrDefaultAsync(cancellationToken);
+                if (populateWorker)
+                {
+                    result.Worker = await _mongoDatabase.Workers()
+                                                        .Find(x => x.Id == result.WorkerId)
+                                                        .SingleOrDefaultAsync(cancellationToken);
+                }
             }
 
             return
@@ -50,12 +54,14 @@ namespace Rscue.Api.Services
         public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> NewAssignmentAsync(Assignment assignment, 
                                                                                                                  CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (assignment == null) throw new ArgumentNullException(nameof(assignment));
+
             assignment.Client = await _mongoDatabase.Clients()
                                                     .Find(x => x.Id == assignment.ClientId)
                                                     .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Client == null)
             {
-                return (null, RepositoryOutcome.NotFound, $"El cliente con el id {assignment.ClientId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id {assignment.ClientId} no existe");
             }
 
             assignment.Provider = await _mongoDatabase.Providers()
@@ -63,7 +69,7 @@ namespace Rscue.Api.Services
                                                .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Provider == null)
             {
-                return (null, RepositoryOutcome.NotFound, $"El proveedor con id {assignment.ProviderId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id {assignment.ProviderId} no existe");
             }
 
             assignment.Worker = await _mongoDatabase.Workers()
@@ -71,12 +77,12 @@ namespace Rscue.Api.Services
                                                     .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
             {
-                return (null, RepositoryOutcome.NotFound, $"El trabajador con id {assignment.WorkerId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id {assignment.WorkerId} no existe");
             }
 
             await _mongoDatabase.Assignments()
                                 .InsertOneAsync(assignment, null, cancellationToken);
-            return (assignment, RepositoryOutcome.RetrieveSuccess, null);
+            return (assignment, RepositoryOutcome.Created, null);
         }
 
         public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> PatchAssignmentAddImageAsync(string id, 
