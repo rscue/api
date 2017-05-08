@@ -57,7 +57,7 @@ namespace Rscue.Api.Controllers
                 await _notificationServices.NotifyAssignmentWorkerAsync(newAssignment);
             }
 
-            return this.FromRepositoryOutcome(outcome, message, newAssignment, nameof(GetAssignment), new { id = newAssignment.Id });
+            return this.FromRepositoryOutcome(outcome, message, newAssignment, nameof(GetAssignment), new { id = newAssignment?.Id });
         }
 
         [HttpPut]
@@ -68,20 +68,26 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> UpdateAssignment(string id, [FromBody] AssignmentViewModel assignmentViewModel)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState.GetErrors());
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-            var (assignment, outcome, message) = await _assignmentRepository.GetAssignmentByIdAsync(assignmentViewModel.Id);
-            if (outcome != RepositoryOutcome.RetrieveSuccess)
+            var (assignment, outcome, message) = await _assignmentRepository.GetAssignmentByIdAsync(id);
+            if (outcome != RepositoryOutcome.Ok)
             {
                 return this.FromRepositoryOutcome(outcome, message);
             }
 
-            (_, outcome, message) = await _assignmentRepository.SaveAssignmentAsync(assignment);
-            var result = this.FromRepositoryOutcome(outcome, message);
-            if (outcome == RepositoryOutcome.Updated)
+            assignment.ClientId = assignmentViewModel.ClientId;
+            assignment.WorkerId = assignmentViewModel.WorkerId;
+            assignment.ProviderId = assignmentViewModel.ProviderId;
+            assignment.Status = assignmentViewModel.Status;
+            assignment.Location = new GeoJson2DGeographicCoordinates(assignmentViewModel.Longitude, assignmentViewModel.Latitude);
+            assignment.EstimatedTimeOfArrival = assignmentViewModel.EstimatedTimeOfArrival;
+            assignment.UpdateDateTime = assignmentViewModel.UpdateDateTime;
+            assignment.Comments = assignmentViewModel.Comments;
+
+            (assignment, outcome, message) = await _assignmentRepository.UpdateAssignmentAsync(assignment);
+            var result = this.FromRepositoryOutcome(outcome, message, assignment);
+            if (outcome == RepositoryOutcome.Ok)
             {
                 await _notificationServices.NotifyAssignmentWorkerAsync(assignment);
             }
@@ -92,7 +98,6 @@ namespace Rscue.Api.Controllers
         [HttpGet]
         [Route("search")]
         [ProducesResponseType(typeof(IEnumerable<AssignmentSearchResponseViewModel>), 200)]
-        [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
         {
@@ -103,17 +108,8 @@ namespace Rscue.Api.Controllers
                                            populateWorker: true);
 
             var assignmentResponses =
-                outcome == RepositoryOutcome.RetrieveSuccess
-                    ? assignments.Select(
-                        _ => new AssignmentResponseViewModel
-                        {
-                            Id =_.Id,
-                            WorkerName = _.Worker?.Name + " " + _.Worker?.LastName,
-                            ClientName = _.Client?.Name + " " + _.Client?.LastName,
-                            CreationDateTime = _.CreationDateTime,
-                            Status = _.Status,
-                            EstimatedTimeOfArrival = _.EstimatedTimeOfArrival
-                        }).ToList()
+                outcome == RepositoryOutcome.Ok
+                    ? assignments.Select(MapToAssignmentResponseViewModel).ToList()
                     : null;
 
             return this.FromRepositoryOutcome(outcome, message, assignmentResponses);
@@ -132,25 +128,8 @@ namespace Rscue.Api.Controllers
                                             populateClient: true, 
                                             populateWorker: true);
             var assignmentResult =
-                outcome == RepositoryOutcome.RetrieveSuccess
-                    ? new AssignmentResponseViewModel
-                    {
-                        Id = assignment.Id,
-                        Status = assignment.Status,
-                        CreationDateTime = assignment.CreationDateTime,
-                        ClientName = assignment.Client?.Name + " " + assignment.Client?.LastName,
-                        WorkerName = assignment.Worker?.Name + " " + assignment.Worker?.LastName,
-                        Latitude = assignment.Location?.Latitude ?? 0d,
-                        Longitude = assignment.Location?.Longitude ?? 0d,
-                        ClientAvatarUri = assignment.Client?.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client?.AvatarUri?.ToString(),
-                        ClientId = assignment.ClientId,
-                        ProviderId = assignment.ProviderId,
-                        Comments = assignment.Comments,
-                        ImageUrls = assignment.ImageUrls,
-                        WorkerId = assignment.WorkerId,
-                        UpdateDateTime = assignment.UpdateDateTime,
-                        EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
-                    }
+                outcome == RepositoryOutcome.Ok
+                    ? MapToAssignmentResponseViewModel(assignment)
                     : null;
 
             return this.FromRepositoryOutcome(outcome, message, assignment);
@@ -175,7 +154,7 @@ namespace Rscue.Api.Controllers
         public async Task<IActionResult> AddIncidentImage(string id, [FromBody] AvatarViewModel avatar)
         {
             var (_, outcome, message) = await _assignmentRepository.GetAssignmentByIdAsync(id);
-            if (outcome != RepositoryOutcome.RetrieveSuccess)
+            if (outcome != RepositoryOutcome.Ok)
             {
                 return this.FromRepositoryOutcome(outcome, message);
             }
@@ -191,5 +170,25 @@ namespace Rscue.Api.Controllers
             await _assignmentRepository.PatchAssignmentAddImageAsync(id, imageName);
             return this.FromRepositoryOutcome(RepositoryOutcome.Created, null, null, location);
         }
+
+        private static AssignmentResponseViewModel MapToAssignmentResponseViewModel(Assignment assignment) =>
+            new AssignmentResponseViewModel
+            {
+                Id = assignment.Id,
+                Status = assignment.Status,
+                CreationDateTime = assignment.CreationDateTime,
+                ClientName = assignment.Client?.Name + " " + assignment.Client?.LastName,
+                WorkerName = assignment.Worker?.Name + " " + assignment.Worker?.LastName,
+                Latitude = assignment.Location?.Latitude ?? 0d,
+                Longitude = assignment.Location?.Longitude ?? 0d,
+                ClientAvatarUri = assignment.Client?.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client?.AvatarUri?.ToString(),
+                ClientId = assignment.ClientId,
+                ProviderId = assignment.ProviderId,
+                Comments = assignment.Comments,
+                ImageUrls = assignment.ImageUrls,
+                WorkerId = assignment.WorkerId,
+                UpdateDateTime = assignment.UpdateDateTime,
+                EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
+            };
     }
 }

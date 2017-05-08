@@ -10,11 +10,10 @@
         {
             switch (outcome)
             {
-                case RepositoryOutcome.RetrieveSuccess: return controller.Ok(value);
+                case RepositoryOutcome.Ok: return controller.Ok(value);
                 case RepositoryOutcome.Created: return controller.CreatedAtRoute(routeName, routeValues, value);
-                case RepositoryOutcome.Updated: return controller.NoContent();
                 case RepositoryOutcome.ValidationError: return error == null ? (IActionResult)controller.BadRequest() : controller.BadRequest(error);
-                case RepositoryOutcome.NotFound: return value == null ? (IActionResult)controller.NotFound() : controller.NotFound(value);
+                case RepositoryOutcome.NotFound: return error == null ? (IActionResult)controller.NotFound() : controller.NotFound(error);
                 default: throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Unrecognized RepositoryOutcome value");
             }
         }

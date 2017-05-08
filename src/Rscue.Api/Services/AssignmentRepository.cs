@@ -45,10 +45,9 @@ namespace Rscue.Api.Services
                 }
             }
 
-            return
-                result == null
-                    ? (result, RepositoryOutcome.NotFound, $"No existe misión con el id {id}")
-                    : (result, RepositoryOutcome.RetrieveSuccess, null);
+            return (result, 
+                    result == null ? RepositoryOutcome.NotFound : RepositoryOutcome.Ok, 
+                    null);
         }
 
         public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> NewAssignmentAsync(Assignment assignment, 
@@ -61,7 +60,7 @@ namespace Rscue.Api.Services
                                                     .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Client == null)
             {
-                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id {assignment.ClientId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id '{assignment.ClientId}' no existe");
             }
 
             assignment.Provider = await _mongoDatabase.Providers()
@@ -69,7 +68,7 @@ namespace Rscue.Api.Services
                                                .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Provider == null)
             {
-                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id {assignment.ProviderId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id '{assignment.ProviderId}' no existe");
             }
 
             assignment.Worker = await _mongoDatabase.Workers()
@@ -77,7 +76,7 @@ namespace Rscue.Api.Services
                                                     .SingleOrDefaultAsync(cancellationToken);
             if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
             {
-                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id {assignment.WorkerId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id '{assignment.WorkerId}' no existe");
             }
 
             await _mongoDatabase.Assignments()
@@ -101,28 +100,38 @@ namespace Rscue.Api.Services
                 updateResult = await _mongoDatabase.Assignments().UpdateOneAsync(x => x.Id == id
                 && x.UpdateDateTime == assignment.UpdateDateTime, updateDefinitition);
             } while (updateResult.ModifiedCount == 0);
-            return (assignment, RepositoryOutcome.Updated, null);
+            return (assignment, RepositoryOutcome.Ok, null);
         }
 
-        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> SaveAssignmentAsync(Assignment assignment, 
+        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> UpdateAssignmentAsync(Assignment assignment, 
                                                                                                                   CancellationToken cancellationToken = default(CancellationToken))
         {
-            assignment.Worker = await _mongoDatabase.Workers()
-                .Find(x => x.Id == assignment.WorkerId)
-                .SingleOrDefaultAsync(cancellationToken);
-
-            if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
+            assignment.Client = await _mongoDatabase.Clients()
+                                        .Find(x => x.Id == assignment.ClientId)
+                                        .SingleOrDefaultAsync(cancellationToken);
+            if (assignment.Client == null)
             {
-                return (null, RepositoryOutcome.NotFound, $"El trabajador con id {assignment.WorkerId} no existe");
+                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id '{assignment.ClientId}' no existe");
             }
 
-            assignment.Status = assignment.Status;
-            assignment.UpdateDateTime = assignment.UpdateDateTime;
-            assignment.Comments = assignment.Comments;
-            assignment.EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival;
+            assignment.Provider = await _mongoDatabase.Providers()
+                                               .Find(x => x.Id == assignment.ProviderId)
+                                               .SingleOrDefaultAsync(cancellationToken);
+            if (assignment.Provider == null)
+            {
+                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id '{assignment.ProviderId}' no existe");
+            }
+
+            assignment.Worker = await _mongoDatabase.Workers()
+                                                    .Find(x => x.Id == assignment.WorkerId)
+                                                    .SingleOrDefaultAsync(cancellationToken);
+            if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
+            {
+                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id '{assignment.WorkerId}' no existe");
+            }
 
             await _mongoDatabase.Assignments().ReplaceOneAsync(x => x.Id == assignment.Id, assignment);
-            return (assignment, RepositoryOutcome.Updated, null);
+            return (assignment, RepositoryOutcome.Ok, null);
         }
 
         public async Task<(IEnumerable<Assignment> assignments, RepositoryOutcome outcome, string message)> SearchAssignmentAsync(DateTimeOffset? startDateTime, 
@@ -175,10 +184,7 @@ namespace Rscue.Api.Services
                     Worker = _.worker
                 }).ToListAsync();
 
-            return
-                !output.Any()
-                    ? ((IEnumerable<Assignment>)null, RepositoryOutcome.NotFound, "No hay misiones")
-                    : (output, RepositoryOutcome.RetrieveSuccess, null);
+            return (output, RepositoryOutcome.Ok, null);
         }
     }
 }

@@ -7,9 +7,8 @@
 
     public enum RepositoryOutcome
     {
-        RetrieveSuccess,
+        Ok,
         Created,
-        Updated,
         ValidationError,
         NotFound
     }

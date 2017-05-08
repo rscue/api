@@ -12,7 +12,7 @@ namespace Rscue.Api.Services
 
         Task<(Assignment assignment, RepositoryOutcome outcome, string message)> NewAssignmentAsync(Assignment assignment, CancellationToken cancellationToken = default(CancellationToken));
 
-        Task<(Assignment assignment, RepositoryOutcome outcome, string message)> SaveAssignmentAsync(Assignment assignment, CancellationToken cancellationToken = default(CancellationToken));
+        Task<(Assignment assignment, RepositoryOutcome outcome, string message)> UpdateAssignmentAsync(Assignment assignment, CancellationToken cancellationToken = default(CancellationToken));
 
         Task<(Assignment assignment, RepositoryOutcome outcome, string message)> PatchAssignmentAddImageAsync(string id, string images, CancellationToken cancellationToken = default(CancellationToken));
 
