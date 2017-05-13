@@ -1,5 +1,6 @@
 ﻿namespace Rscue.Api.Tests.Controllers
 {
+    using System.Linq;
     using Microsoft.AspNetCore.Mvc;
     using MongoDB.Driver;
     using MongoDB.Driver.GeoJsonObjectModel;
@@ -9,16 +10,26 @@
     using Rscue.Api.Tests.Mocks;
     using Rscue.Api.ViewModels;
     using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Xunit;
 
     public class AssignmentControllerTests
     {
+        private readonly IMongoDatabase _mongoDatabase;
+        private readonly ITestDataStore _testDataStore;
+
+        public AssignmentControllerTests()
+        {
+            _mongoDatabase = MongoDbHelper.GetRscueCenterUnitTestDatabase();
+            _testDataStore = new MongoTestDataStore(_mongoDatabase);
+        }
+
         [Fact]
-        public async void TestGetAssignmentSucceedsWith200OnExistentDocument()
+        public async Task TestGetAssignmentSucceedsWith200OnExistentDocument()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
@@ -33,10 +44,10 @@
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
-            db.Assignments().InsertOne(assignment);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
+            _testDataStore.EnsureAssignment(assignment);
 
             // act
             var actualResult = await assignmentController.GetAssignment(assignment.Id);
@@ -51,14 +62,13 @@
         }
 
         [Fact]
-        public async void TestGetAssignmentFailsWith404OnNonExistentDocument()
+        public async Task TestGetAssignmentFailsWith404OnNonExistentDocument()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantId = "ffff0000ffff0000ffff0000";
-            db.Assignments().DeleteOne(_ => _.Id == nonExistantId);
+            _testDataStore.EnsureAssignmentDoesNotExist(nonExistantId);
 
             // act
             var actualResult = await assignmentController.GetAssignment(nonExistantId);
@@ -70,11 +80,10 @@
         }
 
         [Fact]
-        public async void TestNewAssignmentSucceedsWith201()
+        public async Task TestNewAssignmentSucceedsWith201()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
@@ -91,9 +100,9 @@
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
 
             // act
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
@@ -107,11 +116,10 @@
         }
 
         [Fact]
-        public async void TestNewAssignmentFailsWith400OnMissingProvider()
+        public async Task TestNewAssignmentFailsWith400OnMissingProvider()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantProviderId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
@@ -128,9 +136,9 @@
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
-            db.Providers().DeleteOne(_ => _.Id == nonExistantProviderId);
-            db.Clients().InsertOne(client);
-            db.Workers().InsertOne(worker);
+            _testDataStore.EnsureProviderDoesNotExist(nonExistantProviderId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureWorker(worker);
 
             // act
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
@@ -143,11 +151,10 @@
         }
 
         [Fact]
-        public async void TestNewAssignmentFailsWith400OnMissingWorker()
+        public async Task TestNewAssignmentFailsWith400OnMissingWorker()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantWorkerId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
@@ -164,9 +171,9 @@
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
-            db.Workers().DeleteOne(_ => _.Id == nonExistantWorkerId);
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
+            _testDataStore.EnsureWorkerDoesNotExist(nonExistantWorkerId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
 
             // act
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
@@ -179,11 +186,10 @@
         }
 
         [Fact]
-        public async void TestNewAssignmentFailsWith400OnMissingClient()
+        public async Task TestNewAssignmentFailsWith400OnMissingClient()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantClientId = "ffff0000ffff0000ffff0000ffff0000";
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
@@ -200,9 +206,9 @@
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
-            db.Clients().DeleteOne(_ => _.Id == nonExistantClientId);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
+            _testDataStore.EnsureClientDoesNotExist(nonExistantClientId);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
 
             // act
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
@@ -215,11 +221,10 @@
         }
 
         [Fact]
-        public async void TestUpdateAssignmentSucceedsWith200()
+        public async Task TestUpdateAssignmentSucceedsWith200()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
@@ -248,10 +253,10 @@
                     ProviderId = provider.Id
                 };
 
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
-            db.Assignments().InsertOne(assignment);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
+            _testDataStore.EnsureAssignment(assignment);
 
             // act
             var actualResult = await assignmentController.UpdateAssignment(assignment.Id, updateAssignmentVM);
@@ -264,11 +269,10 @@
         }
 
         [Fact]
-        public async void TestUpdateAssignmentFailsWith404WhenAssignmentDoesNotExist()
+        public async Task TestUpdateAssignmentFailsWith404WhenAssignmentDoesNotExist()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var now = DateTimeOffset.Now;
             var nonExistantAssignmentId = "ffff0000ffff0000ffff0000";
@@ -289,10 +293,10 @@
                     ProviderId = provider.Id
                 };
 
-            db.Assignments().DeleteOne(_ => _.Id == nonExistantAssignmentId);
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
+            _testDataStore.EnsureAssignmentDoesNotExist(nonExistantAssignmentId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
             
             // act
             var actualResult = await assignmentController.UpdateAssignment(nonExistantAssignmentId, updateAssignmentVM);
@@ -304,11 +308,10 @@
         }
 
         [Fact]
-        public async void TestUpdateAssignmentFailsWith400OnMissingProvider()
+        public async Task TestUpdateAssignmentFailsWith400OnMissingProvider()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantProviderId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
@@ -338,11 +341,11 @@
                     ProviderId = nonExistantProviderId
                 };
 
-            db.Providers().DeleteOne(_ => _.Id == nonExistantProviderId);
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
-            db.Assignments().InsertOne(assignment);
+            _testDataStore.EnsureProviderDoesNotExist(nonExistantProviderId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
+            _testDataStore.EnsureAssignment(assignment);
 
             // act
             var actualResult = await assignmentController.UpdateAssignment(assignment.Id, updateAssignmentVM);
@@ -355,11 +358,10 @@
         }
 
         [Fact]
-        public async void TestUpdateAssignmentFailsWith400OnMissingWorker()
+        public async Task TestUpdateAssignmentFailsWith400OnMissingWorker()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantWorkerId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
@@ -389,11 +391,11 @@
                     ProviderId = provider.Id
                 };
 
-            db.Workers().DeleteOne(_ => _.Id == nonExistantWorkerId);
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
-            db.Assignments().InsertOne(assignment);
+            _testDataStore.EnsureWorkerDoesNotExist(nonExistantWorkerId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
+            _testDataStore.EnsureAssignment(assignment);
 
             // act
             var actualResult = await assignmentController.UpdateAssignment(assignment.Id, updateAssignmentVM);
@@ -406,11 +408,10 @@
         }
 
         [Fact]
-        public async void TestUpdateAssignmentFailsWith400OnMissingClient()
+        public async Task TestUpdateAssignmentFailsWith400OnMissingClient()
         {
             // arrange
-            var db = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            var assignmentController = GetAssignmentController(db);
+            var assignmentController = GetAssignmentController();
 
             var nonExistantClientId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
@@ -440,11 +441,11 @@
                     ProviderId = provider.Id
                 };
 
-            db.Clients().DeleteOne(_ => _.Id == nonExistantClientId);
-            db.Clients().InsertOne(client);
-            db.Providers().InsertOne(provider);
-            db.Workers().InsertOne(worker);
-            db.Assignments().InsertOne(assignment);
+            _testDataStore.EnsureClientDoesNotExist(nonExistantClientId);
+            _testDataStore.EnsureClient(client);
+            _testDataStore.EnsureProvider(provider);
+            _testDataStore.EnsureWorker(worker);
+            _testDataStore.EnsureAssignment(assignment);
 
             // act
             var actualResult = await assignmentController.UpdateAssignment(assignment.Id, updateAssignmentVM);
@@ -456,7 +457,76 @@
             Assert.NotNull(actualUpdateAssignmentResult.Value);
         }
 
-        private static AssignmentController GetAssignmentController(IMongoDatabase mongoDatabase) =>
-            new AssignmentController(new AssignmentRepository(mongoDatabase), new NotificationServicesMock(), new ImageStoreMock());
+        [Fact]
+        public async Task TestSearchAssignmentReturnArgumentInRangeInProgress()
+        {
+            // arrange
+            var assignmentController = GetAssignmentController();
+            PopulateDataSet1();
+            var searchQuery = new AssignmentSearchViewModel
+            {
+                Statuses = new List<AssignmentStatus> { AssignmentStatus.InProgress },
+                StartDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)),
+                EndDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0))
+            };
+
+            // act 
+            var actualResult = await assignmentController.SearchAssignments(searchQuery);
+
+            // assert
+            var actualUpdateAssignmentResult = actualResult as OkObjectResult;
+            Assert.True(actualUpdateAssignmentResult != null, "actualUpdateAssignmentResult should be of type OkObjectResult");
+            Assert.Equal(200, actualUpdateAssignmentResult.StatusCode);
+            Assert.NotNull(actualUpdateAssignmentResult.Value);
+            Assert.Equal(2, ((IEnumerable<AssignmentResponseViewModel>)actualUpdateAssignmentResult.Value).Count());
+        }
+
+        [Fact]
+        public async Task TestSearchAssignmentReturnArgumentInRangeInProgressAssignedCreated()
+        {
+            // arrange
+            var assignmentController = GetAssignmentController();
+            PopulateDataSet1();
+            var searchQuery = new AssignmentSearchViewModel
+            {
+                Statuses = new List<AssignmentStatus> { AssignmentStatus.InProgress, AssignmentStatus.Assigned, AssignmentStatus.Created },
+                StartDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)),
+                EndDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0))
+            };
+
+            // act 
+            var actualResult = await assignmentController.SearchAssignments(searchQuery);
+
+            // assert
+            var actualUpdateAssignmentResult = actualResult as OkObjectResult;
+            Assert.True(actualUpdateAssignmentResult != null, "actualUpdateAssignmentResult should be of type OkObjectResult");
+            Assert.Equal(200, actualUpdateAssignmentResult.StatusCode);
+            Assert.NotNull(actualUpdateAssignmentResult.Value);
+            Assert.Equal(4, ((IEnumerable<AssignmentResponseViewModel>)actualUpdateAssignmentResult.Value).Count());
+        }
+
+        private void PopulateDataSet1()
+        {
+            var client1Id = Guid.NewGuid().ToString("n");
+            var client2Id = Guid.NewGuid().ToString("n");
+            _testDataStore.EnsureNoClients();
+            _testDataStore.EnsureNoAssignments();
+            _testDataStore.EnsureClient(new Client { Id = client1Id });
+            _testDataStore.EnsureClient(new Client { Id = client2Id });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 1, 12)), Status = AssignmentStatus.Completed });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 31, 18)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 33, 6)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 45, 0)), Status = AssignmentStatus.Assigned });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 9, 45)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 17, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
+        }
+
+        private AssignmentController GetAssignmentController() =>
+            new AssignmentController(new AssignmentRepository(_mongoDatabase), new NotificationServicesMock(), new ImageStoreMock());
+
     }
 }

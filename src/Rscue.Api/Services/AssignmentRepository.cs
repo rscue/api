@@ -155,35 +155,47 @@ namespace Rscue.Api.Services
                 assignments = assignments.Where(x => statuses.Contains(x.Status));
             }
 
-            var projection = assignments.Select(_ => new { assignment = _, worker = (Worker)null, client = (Client)null });
+            assignments = assignments.OrderBy(_ => _.CreationDateTime);
+
+            var tasks = new Task[] { Task.CompletedTask, Task.CompletedTask };
+            var clients = (Dictionary<string, Client>)null;
+            var workers = (Dictionary<string, Worker>)null;
+
+            var output = await assignments.ToListAsync();
             if (populateClient)
             {
-                projection = projection.Join(_mongoDatabase.Clients(), _ => _.assignment.ClientId, _ => _.Id, (_, client) => new { assignment = _.assignment, worker = _.worker, client = client });
+                var clientIds = output.Where(_ => _.ClientId != null).Select(_ => _.ClientId).ToList();
+                tasks[0] =
+                    _mongoDatabase.Clients().FindAsync(_ => clientIds.Contains(_.Id))
+                        .ContinueWith(_ => _.Result.ToListAsync(), TaskContinuationOptions.OnlyOnRanToCompletion)
+                        .ContinueWith(_ => clients = _.Result.Result.ToDictionary(__ => __.Id), TaskContinuationOptions.OnlyOnRanToCompletion);
+            }
+            else
+            {
+                clients = new Dictionary<string, Client>();
             }
 
             if (populateWorker)
             {
-                projection = projection.Join(_mongoDatabase.Workers(), _ => _.assignment.WorkerId, _ => _.Id, (_, worker) => new { assignment = _.assignment, worker = worker, client = _.client });
+                var workerIds = output.Where(_ => _.WorkerId != null).Select(_ => _.WorkerId).ToList();
+                tasks[1] =
+                    _mongoDatabase.Workers().FindAsync(_ => workerIds.Contains(_.Id))
+                        .ContinueWith(_ => _.Result.ToListAsync(), TaskContinuationOptions.OnlyOnRanToCompletion)
+                        .ContinueWith(_ => workers = _.Result.Result.ToDictionary(__ => __.Id), TaskContinuationOptions.OnlyOnRanToCompletion);
+            }
+            else
+            {
+                workers = new Dictionary<string, Worker>();
             }
 
-            var output = await projection.Select(
-                _ => new Assignment
-                {
-                    Id = _.assignment.Id,
-                    Comments = _.assignment.Comments,
-                    ClientId = _.assignment.ClientId,
-                    CreationDateTime = _.assignment.CreationDateTime,
-                    EstimatedTimeOfArrival = _.assignment.EstimatedTimeOfArrival,
-                    ImageUrls = _.assignment.ImageUrls,
-                    Location = _.assignment.Location,
-                    ProviderId = _.assignment.ProviderId,
-                    Status = _.assignment.Status,
-                    UpdateDateTime = _.assignment.UpdateDateTime,
-                    WorkerId = _.assignment.WorkerId,
-                    Client = _.client,
-                    Worker = _.worker
-                }).ToListAsync();
+            await Task.WhenAll(tasks);
 
+            foreach (var item in output)
+            {
+                item.Client = clients.GetValueOrDefault(item.ClientId);
+                item.Worker = workers.GetValueOrDefault(item.WorkerId);
+            }
+            
             return (output, RepositoryOutcome.Ok, null);
         }
     }

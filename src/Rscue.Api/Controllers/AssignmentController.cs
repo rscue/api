@@ -96,8 +96,7 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet]
-        [Route("search")]
-        [ProducesResponseType(typeof(IEnumerable<AssignmentSearchResponseViewModel>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<AssignmentResponseViewModel>), 200)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
         {
