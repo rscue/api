@@ -5,9 +5,10 @@ using MongoDB.Driver;
 
 namespace Rscue.Api.Models
 {
-    public class Fleet
+    public class BoatTow
     {
         [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
         public BsonObjectId Id { get; set; }
 
         [Required]
