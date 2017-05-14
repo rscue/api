@@ -1,18 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.WindowsAzure.Storage;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Driver.Linq;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
+using Rscue.Api.Services;
 using Rscue.Api.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Rscue.Api.Controllers
 {
@@ -20,73 +20,44 @@ namespace Rscue.Api.Controllers
     [Route("assignment")]
     public class AssignmentController : Controller
     {
-        private readonly IMongoDatabase _mongoDatabase;
-        private readonly ProviderAppSettings _providerAppSettings;
-        private readonly AzureSettings _azureSettings;
+        private readonly IAssignmentRepository _assignmentRepository;
+        private readonly INotificationServices _notificationServices;
+        private readonly IImageStore _imageStore;
 
-        public AssignmentController(IMongoDatabase mongoDatabase, IOptions<ProviderAppSettings> providerAppSettings, IOptions<AzureSettings> azureSettings)
+        public AssignmentController(IAssignmentRepository assignmentRepository, INotificationServices notificationServices, IImageStore imageStore)
         {
-            _mongoDatabase = mongoDatabase;
-            _providerAppSettings = providerAppSettings.Value;
-            _azureSettings = azureSettings.Value;
+            _assignmentRepository = assignmentRepository ?? throw new ArgumentNullException(nameof(assignmentRepository));
+            _notificationServices = notificationServices ?? throw new ArgumentNullException(nameof(notificationServices));
+            _imageStore = imageStore ?? throw new ArgumentNullException(nameof(imageStore));
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(AssignmentViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
-        [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddAssignment([FromBody] AssignmentViewModel assignment)
+        public async Task<IActionResult> NewAssignment([FromBody] AssignmentViewModel assignmentViewModel)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var assignment = new Assignment
             {
-                var client = await _mongoDatabase.GetCollection<Client>("clients").Find(x => x.Id == assignment.ClientId).SingleOrDefaultAsync();
-                if (client == null)
-                {
-                    return await Task.FromResult(NotFound($"El cliente con el id {assignment.ClientId} no existe"));
-                }
+                ProviderId = assignmentViewModel.ProviderId,
+                ClientId = assignmentViewModel.ClientId,
+                CreationDateTime = assignmentViewModel.CreationDateTime,
+                Location = new GeoJson2DGeographicCoordinates(assignmentViewModel.Longitude, assignmentViewModel.Latitude),
+                Status = assignmentViewModel.Status,
+                EstimatedTimeOfArrival = assignmentViewModel.EstimatedTimeOfArrival,
+                WorkerId = assignmentViewModel.WorkerId.IfNotNullOrEmpty()
+            };
 
-                var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == assignment.ProviderId).SingleOrDefaultAsync();
-                if (provider == null)
-                {
-                    return await Task.FromResult(NotFound($"El proveedor con id {assignment.ProviderId} no existe"));
-                }
+            var (newAssignment, outcome, message) = await _assignmentRepository.NewAssignmentAsync(assignment);
 
-                var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == assignment.WorkerId).SingleOrDefaultAsync();
-                if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
-                {
-                    return await Task.FromResult(NotFound($"El trabajador con id {assignment.WorkerId} no existe"));
-                }
-
-                var model = new Assignment
-                {
-                    ProviderId = assignment.ProviderId,
-                    ClientId = assignment.ClientId,
-                    CreationDateTime = assignment.CreationDateTime,
-                    Location = new GeoJson2DGeographicCoordinates(assignment.Longitude, assignment.Latitude),
-                    Status = assignment.Status,
-                    EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
-                };
-
-                if (!string.IsNullOrWhiteSpace(assignment.WorkerId))
-                {
-                    model.WorkerId = assignment.WorkerId;
-                }
-
-                await _mongoDatabase.GetCollection<Assignment>("assignments").InsertOneAsync(model);
-                var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
-                assignment.Id = model.Id.ToString();
-
-                if (worker != null)
-                {
-                    var payload = PushNotificationHelpers.GetNewAssignmentPayload(worker.DeviceId, model.Id);
-                    PushNotificationHelpers.Send(_providerAppSettings.ApplicationId, _providerAppSettings.SenderId, payload);
-                }
-
-                return await Task.FromResult(Created(uri, assignment));
+            if (outcome == RepositoryOutcome.Created)
+            {
+                await _notificationServices.NotifyAssignmentWorkerAsync(newAssignment);
             }
 
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
+            return this.FromRepositoryOutcome(outcome, message, newAssignment, nameof(GetAssignment), new { id = newAssignment?.Id });
         }
 
         [HttpPut]
@@ -95,195 +66,128 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateAssignment(string id, [FromBody] AssignmentViewModel assignment)
+        public async Task<IActionResult> UpdateAssignment(string id, [FromBody] AssignmentViewModel assignmentViewModel)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var (assignment, outcome, message) = await _assignmentRepository.GetAssignmentByIdAsync(id);
+            if (outcome != RepositoryOutcome.Ok)
             {
-                var model = await _mongoDatabase.GetCollection<Assignment>("assignments")
-                            .Find(x => x.Id == id)
-                            .SingleOrDefaultAsync();
-
-                if (model == null)
-                {
-                    return await Task.FromResult(NotFound($"No existe misión con el id {assignment.Id}"));
-                }
-
-                var worker = await _mongoDatabase.GetCollection<Worker>("workers")
-                            .Find(x => x.Id == assignment.WorkerId)
-                            .SingleOrDefaultAsync();
-
-                if (worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
-                {
-                    return await Task.FromResult(NotFound($"El trabajador con id {assignment.WorkerId} no existe"));
-                }
-
-                if ((worker != null && worker.Id != assignment.WorkerId && !string.IsNullOrWhiteSpace(assignment.WorkerId)) 
-                    || !string.IsNullOrWhiteSpace(assignment.WorkerId))
-                {
-                    model.WorkerId = assignment.WorkerId;
-                    var payload = PushNotificationHelpers.GetNewAssignmentPayload(worker.DeviceId, model.Id);
-                    PushNotificationHelpers.Send(_providerAppSettings.ApplicationId, _providerAppSettings.SenderId,
-                        payload);
-                }
-
-                model.Status = assignment.Status;
-                model.UpdateDateTime = assignment.UpdateDateTime;
-                model.Comments = assignment.Comments;
-                model.EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival;
-
-                await _mongoDatabase.GetCollection<Assignment>("assignments").ReplaceOneAsync(x => x.Id == id, model);
-
-                return await Task.FromResult(Ok());
+                return this.FromRepositoryOutcome(outcome, message);
             }
 
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
+            assignment.ClientId = assignmentViewModel.ClientId;
+            assignment.WorkerId = assignmentViewModel.WorkerId;
+            assignment.ProviderId = assignmentViewModel.ProviderId;
+            assignment.Status = assignmentViewModel.Status;
+            assignment.Location = new GeoJson2DGeographicCoordinates(assignmentViewModel.Longitude, assignmentViewModel.Latitude);
+            assignment.EstimatedTimeOfArrival = assignmentViewModel.EstimatedTimeOfArrival;
+            assignment.UpdateDateTime = assignmentViewModel.UpdateDateTime;
+            assignment.Comments = assignmentViewModel.Comments;
+
+            (assignment, outcome, message) = await _assignmentRepository.UpdateAssignmentAsync(assignment);
+            var result = this.FromRepositoryOutcome(outcome, message, assignment);
+            if (outcome == RepositoryOutcome.Ok)
+            {
+                await _notificationServices.NotifyAssignmentWorkerAsync(assignment);
+            }
+
+            return result;
         }
 
         [HttpGet]
-        [Route("search")]
-        [ProducesResponseType(typeof(IEnumerable<AssignmentSearchResponseViewModel>), 200)]
-        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(IEnumerable<AssignmentResponseViewModel>), 200)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> SearchAssignments([FromQuery] AssignmentSearchViewModel search)
         {
-            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
-            var workerCollection = _mongoDatabase.GetCollection<Worker>("workers");
-            var clientCollection = _mongoDatabase.GetCollection<Client>("clients");
+            var (assignments, outcome, message) = 
+                await _assignmentRepository
+                    .SearchAssignmentAsync(search.StartDateTime, search.EndDateTime, search.Statuses,
+                                           populateClient: true,
+                                           populateWorker: true);
 
-            var query = from assignment in collection.AsQueryable()
-                        join worker in workerCollection on assignment.WorkerId equals worker.Id into workers
-                        join client in clientCollection on assignment.ClientId equals client.Id into clients
-                        select new AssignmentSearchResponseViewModel
-                        {
-                            Id = assignment.Id,
-                            WorkerName = workers.First().Name + " " + workers.First().LastName,
-                            ClientName = clients.First().Name + " " + clients.First().LastName,
-                            CreationDateTime = assignment.CreationDateTime,
-                            Status = assignment.Status,
-                            EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
-                        };
+            var assignmentResponses =
+                outcome == RepositoryOutcome.Ok
+                    ? assignments.Select(MapToAssignmentResponseViewModel).ToList()
+                    : null;
 
-            if (search.StartDateTime.HasValue)
-            {
-                query = query.Where(x => x.CreationDateTime > search.StartDateTime.Value);
-            }
-            if (search.EndDateTime.HasValue)
-            {
-                query = query.Where(x => x.CreationDateTime < search.EndDateTime.Value);
-            }
-            if (search.Statuses != null && search.Statuses.Any())
-            {
-                query = query.Where(x => search.Statuses.Contains(x.Status));
-            }
-
-            var assignments = await query.ToListAsync();
-
-            if (!query.Any())
-            {
-                return await Task.FromResult(NotFound("No hay misiones"));
-            }
-
-            return await Task.FromResult(Ok(assignments));
+            return this.FromRepositoryOutcome(outcome, message, assignmentResponses);
         }
 
         [HttpGet]
-        [Route("{id}")]
+        [Route("{id}", Name = "GetAssignment")]
         [ProducesResponseType(typeof(AssignmentResponseViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetAssignment(string id)
         {
-            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
-            var workerCollection = _mongoDatabase.GetCollection<Worker>("workers");
-            var clientCollection = _mongoDatabase.GetCollection<Client>("clients");
+            var (assignment, outcome, message) = 
+                await _assignmentRepository
+                    .GetAssignmentByIdAsync(id, 
+                                            populateClient: true, 
+                                            populateWorker: true);
+            var assignmentResult =
+                outcome == RepositoryOutcome.Ok
+                    ? MapToAssignmentResponseViewModel(assignment)
+                    : null;
 
-            var query = from assignment in collection.AsQueryable()
-                        where assignment.Id == id
-                        join worker in workerCollection on assignment.WorkerId equals worker.Id into workers
-                        join client in clientCollection on assignment.ClientId equals client.Id into clients
-                        select new
-                        {
-                            assignment.Id,
-                            WorkerName = workers.First().Name + " " + workers.First().LastName,
-                            ClientName = clients.First().Name + " " + clients.First().LastName,
-                            assignment.CreationDateTime,
-                            assignment.Status,
-                            assignment.Location,
-                            ClientAvatarUri = clients.First().AvatarUri,
-                            ClientId = clients.First().Id,
-                            assignment.WorkerId,
-                            assignment.ProviderId,
-                            assignment.Comments,
-                            assignment.ImageUrls,
-                            assignment.UpdateDateTime,
-                            assignment.EstimatedTimeOfArrival
-                        };
-
-            var result = await query.SingleOrDefaultAsync();
-
-            if (result == null)
-            {
-                return await Task.FromResult(NotFound($"No existe la misión con Id {id}"));
-            }
-
-            var model = new AssignmentResponseViewModel
-            {
-                Id = result.Id,
-                Status = result.Status,
-                CreationDateTime = result.CreationDateTime,
-                ClientName = result.ClientName,
-                WorkerName = result.WorkerName,
-                Latitude = result.Location.Latitude,
-                Longitude = result.Location.Longitude,
-                ClientAvatarUri = result.ClientAvatarUri == null ? "assets/img/nobody.jpg" : result.ClientAvatarUri.ToString(),
-                ClientId = result.ClientId,
-                ProviderId = result.ProviderId,
-                Comments = result.Comments,
-                ImageUrls = result.ImageUrls,
-                WorkerId = result.WorkerId,
-                UpdateDateTime = result.UpdateDateTime,
-                EstimatedTimeOfArrival = result.EstimatedTimeOfArrival
-            };
-
-            return await Task.FromResult(Ok(model));
+            return this.FromRepositoryOutcome(outcome, message, assignment);
         }
+
+        [Route("{id}/incidentpic/{imageName}")]
+        [HttpGet]
+        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
+        public IActionResult GetIncidentImage(string id, string imageName)
+        {
+            return new StreamResult(async _ => await _imageStore.DownloadImageAsync(imageName, this.Response.Body));
+        }
+
 
         [Route("{id}/incidentpic")]
         [HttpPost]
-        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(typeof(string), 201)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddIncidentImage(string id, [FromBody] AvatarViewModel avatar)
         {
-            var assignment = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == id).SingleOrDefaultAsync();
-            if (assignment == null)
+            var (_, outcome, message) = await _assignmentRepository.GetAssignmentByIdAsync(id);
+            if (outcome != RepositoryOutcome.Ok)
             {
-                return await Task.FromResult(NotFound($"No existe misión con id {id}"));
+                return this.FromRepositoryOutcome(outcome, message);
             }
 
             var dataImage = avatar.ImageBase64.Split(',');
-            var imageBytes = Convert.FromBase64String(dataImage[1]);
+            var imageStream = new MemoryStream(Convert.FromBase64String(dataImage[1]));
             var mimeString = dataImage[0].Split(':')[1].Split(';')[0];
             var extension = mimeString.Split('/')[1];
             var imageName = $"{Guid.NewGuid().ToString("N")}.{extension}";
-            var cloudStorageAccount = CloudStorageAccount.Parse(_azureSettings.StorageConnectionString);
-            var blobClient = cloudStorageAccount.CreateCloudBlobClient();
-            var blobContainer = blobClient.GetContainerReference("incidentpics");
-            var blockBlob = blobContainer.GetBlockBlobReference(imageName);
-            await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
+            var location = $"{Request.GetEncodedUrl()}/{imageName}";
 
-            UpdateResult updateResult;
-            do
-            {
-                assignment = await _mongoDatabase.GetCollection<Assignment>("assignments").Find(x => x.Id == id).SingleOrDefaultAsync();
-                var imageUrls = assignment.ImageUrls ?? new List<string>();
-                imageUrls.Add(blockBlob.Uri.ToString());
-                var updateDefinitition = new UpdateDefinitionBuilder<Assignment>().Set(x => x.ImageUrls, imageUrls).Set(x => x.UpdateDateTime, DateTimeOffset.Now);
-                updateResult = await _mongoDatabase.GetCollection<Assignment>("assignments").UpdateOneAsync(x => x.Id == id
-                && x.UpdateDateTime == assignment.UpdateDateTime, updateDefinitition);
-            } while (updateResult.ModifiedCount == 0);
-
-            return await Task.FromResult(Ok(blockBlob.Uri));
+            await _imageStore.UploadImageAsync(imageName, imageStream);
+            await _assignmentRepository.PatchAssignmentAddImageAsync(id, imageName);
+            return this.FromRepositoryOutcome(RepositoryOutcome.Created, null, null, location);
         }
+
+        private static AssignmentResponseViewModel MapToAssignmentResponseViewModel(Assignment assignment) =>
+            new AssignmentResponseViewModel
+            {
+                Id = assignment.Id,
+                Status = assignment.Status,
+                CreationDateTime = assignment.CreationDateTime,
+                ClientName = assignment.Client?.Name + " " + assignment.Client?.LastName,
+                WorkerName = assignment.Worker?.Name + " " + assignment.Worker?.LastName,
+                Latitude = assignment.Location?.Latitude ?? 0d,
+                Longitude = assignment.Location?.Longitude ?? 0d,
+                ClientAvatarUri = assignment.Client?.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client?.AvatarUri?.ToString(),
+                ClientId = assignment.ClientId,
+                ProviderId = assignment.ProviderId,
+                Comments = assignment.Comments,
+                ImageUrls = assignment.ImageUrls,
+                WorkerId = assignment.WorkerId,
+                UpdateDateTime = assignment.UpdateDateTime,
+                EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
+            };
     }
 }

@@ -22,6 +22,7 @@ using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 using Swashbuckle.AspNetCore.Swagger;
+using Rscue.Api.Services;
 
 namespace Rscue.Api
 {
@@ -42,7 +43,7 @@ namespace Rscue.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<IUserIdProvider, HubUserIdProvider>();
+            ApplicationServicesHelper.ConfigureApplicationServices(services);
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());

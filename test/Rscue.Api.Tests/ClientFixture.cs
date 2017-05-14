@@ -17,7 +17,7 @@ namespace Rscue.Api.Tests
             rnd = new Random();
         }
 
-        [Fact]
+        //[Fact]
         public async Task CanSaveClient()
         {
             var client = new Client
@@ -46,7 +46,7 @@ namespace Rscue.Api.Tests
             });
         }
 
-        [Fact]
+        //[Fact]
         public async Task CanGetClient()
         {
             var client = new Client
@@ -80,7 +80,7 @@ namespace Rscue.Api.Tests
             });
         }
 
-        [Fact]
+        //[Fact]
         public async Task CanUpdateProfilePic()
         {
             var avatar = new AvatarViewModel
