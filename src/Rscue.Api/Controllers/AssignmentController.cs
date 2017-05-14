@@ -41,13 +41,17 @@ namespace Rscue.Api.Controllers
 
             var assignment = new Assignment
             {
+                // Id ignored on pupose
                 ProviderId = assignmentViewModel.ProviderId,
                 ClientId = assignmentViewModel.ClientId,
                 CreationDateTime = assignmentViewModel.CreationDateTime,
-                Location = new GeoJson2DGeographicCoordinates(assignmentViewModel.Longitude, assignmentViewModel.Latitude),
+                InitialLocation = new GeoJson2DGeographicCoordinates(assignmentViewModel.InitialLocationLongitude, assignmentViewModel.InitialLocationLatitude),
+                // ServiceLocation ignored on purpose.
                 Status = assignmentViewModel.Status,
+                StatusReason = assignmentViewModel.StatusReason,
                 EstimatedTimeOfArrival = assignmentViewModel.EstimatedTimeOfArrival,
-                WorkerId = assignmentViewModel.WorkerId.IfNotNullOrEmpty()
+                WorkerId = assignmentViewModel.WorkerId.IfNotNullOrEmpty(),
+                BoatTowId = assignmentViewModel.BoatTowId.IfNotNullOrEmpty()
             };
 
             var (newAssignment, outcome, message) = await _assignmentRepository.NewAssignmentAsync(assignment);
@@ -80,7 +84,12 @@ namespace Rscue.Api.Controllers
             assignment.WorkerId = assignmentViewModel.WorkerId;
             assignment.ProviderId = assignmentViewModel.ProviderId;
             assignment.Status = assignmentViewModel.Status;
-            assignment.Location = new GeoJson2DGeographicCoordinates(assignmentViewModel.Longitude, assignmentViewModel.Latitude);
+            assignment.StatusReason = assignmentViewModel.StatusReason;
+            assignment.InitialLocation = new GeoJson2DGeographicCoordinates(assignmentViewModel.InitialLocationLongitude, assignmentViewModel.InitialLocationLatitude);
+            assignment.ServiceLocation = 
+                assignmentViewModel.ServiceLocationLongitude != null && assignmentViewModel.ServiceLocationLatitude != null 
+                    ? new GeoJson2DGeographicCoordinates(assignmentViewModel.ServiceLocationLongitude.Value, assignmentViewModel.ServiceLocationLatitude.Value) 
+                    : null;
             assignment.EstimatedTimeOfArrival = assignmentViewModel.EstimatedTimeOfArrival;
             assignment.UpdateDateTime = assignmentViewModel.UpdateDateTime;
             assignment.Comments = assignmentViewModel.Comments;
@@ -175,17 +184,21 @@ namespace Rscue.Api.Controllers
             {
                 Id = assignment.Id,
                 Status = assignment.Status,
+                StatusReason = assignment.StatusReason,
                 CreationDateTime = assignment.CreationDateTime,
                 ClientName = assignment.Client?.Name + " " + assignment.Client?.LastName,
                 WorkerName = assignment.Worker?.Name + " " + assignment.Worker?.LastName,
-                Latitude = assignment.Location?.Latitude ?? 0d,
-                Longitude = assignment.Location?.Longitude ?? 0d,
+                InitialLocationLatitude = assignment.InitialLocation?.Latitude ?? 0d,
+                InitialLocationLongitude = assignment.InitialLocation?.Longitude ?? 0d,
+                ServiceLocationLatitude = assignment.ServiceLocation?.Latitude,
+                ServiceLocationLongitude = assignment.ServiceLocation?.Longitude,
                 ClientAvatarUri = assignment.Client?.AvatarUri == null ? "assets/img/nobody.jpg" : assignment.Client?.AvatarUri?.ToString(),
                 ClientId = assignment.ClientId,
                 ProviderId = assignment.ProviderId,
                 Comments = assignment.Comments,
                 ImageUrls = assignment.ImageUrls,
                 WorkerId = assignment.WorkerId,
+                BoatTowId = assignment.BoatTowId,
                 UpdateDateTime = assignment.UpdateDateTime,
                 EstimatedTimeOfArrival = assignment.EstimatedTimeOfArrival
             };

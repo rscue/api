@@ -19,17 +19,26 @@ namespace Rscue.Api.ViewModels
         public DateTimeOffset CreationDateTime { get; set; }
 
         [Required(ErrorMessage = "El campo es requerido")]
-        public double Latitude { get; set; }
+        public double InitialLocationLatitude { get; set; }
 
         [Required(ErrorMessage = "El campo es requerido")]
-        public double Longitude { get; set; }
+        public double InitialLocationLongitude { get; set; }
+
+        public double? ServiceLocationLatitude { get; set; }
+
+        public double? ServiceLocationLongitude { get; set; }
 
         [Required(ErrorMessage = "El campo es requerido")]
         public AssignmentStatus Status { get; set; }
 
+        [Required(ErrorMessage = "El campo es requerido")]
+        public AssignmentStatusReason StatusReason { get; set; }
+
         public DateTimeOffset UpdateDateTime { get; set; }
         
         public string WorkerId { get; set; }
+
+        public string BoatTowId { get; set; }
 
         public string Comments { get; set; }
 

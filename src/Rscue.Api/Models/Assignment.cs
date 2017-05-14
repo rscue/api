@@ -23,10 +23,16 @@ namespace Rscue.Api.Models
         public DateTimeOffset CreationDateTime { get; set; }
 
         [BsonElement]
-        public GeoJson2DGeographicCoordinates Location { get; set; }
+        public GeoJson2DGeographicCoordinates InitialLocation { get; set; }
+
+        [BsonElement]
+        public GeoJson2DGeographicCoordinates ServiceLocation { get; set; }
 
         [BsonElement]
         public AssignmentStatus Status { get; set; }
+
+        [BsonElement]
+        public AssignmentStatusReason StatusReason { get; set; }
 
         [BsonElement]
         [BsonRepresentation(BsonType.Document)]
@@ -34,6 +40,9 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public string WorkerId { get; set; }
+
+        [BsonElement]
+        public string BoatTowId { get; set; }
 
         [BsonElement]
         public string Comments { get; set; }
@@ -52,5 +61,8 @@ namespace Rscue.Api.Models
 
         [BsonIgnore]
         public Provider Provider { get; set; }
+
+        [BsonIgnore]
+        public BoatTow BoatTow { get; set; }
     }
 }

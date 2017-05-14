@@ -91,12 +91,13 @@
             var assignmentVM =
                             new AssignmentViewModel
                             {
-                                Latitude = -34.605062,
-                                Longitude = -58.375979,
+                                InitialLocationLatitude = -34.605062,
+                                InitialLocationLongitude = -58.375979,
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
                                 Status = AssignmentStatus.Created,
+                                StatusReason = AssignmentStatusReason.New,
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
@@ -127,12 +128,13 @@
             var assignmentVM =
                             new AssignmentViewModel
                             {
-                                Latitude = -34.605062,
-                                Longitude = -58.375979,
+                                InitialLocationLatitude = -34.605062,
+                                InitialLocationLongitude = -58.375979,
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = nonExistantProviderId,
                                 Status = AssignmentStatus.Created,
+                                StatusReason = AssignmentStatusReason.New,
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
@@ -162,12 +164,13 @@
             var assignmentVM =
                             new AssignmentViewModel
                             {
-                                Latitude = -34.605062,
-                                Longitude = -58.375979,
+                                InitialLocationLatitude = -34.605062,
+                                InitialLocationLongitude = -58.375979,
                                 ClientId = client.Id,
                                 WorkerId = nonExistantWorkerId,
                                 ProviderId = provider.Id,
                                 Status = AssignmentStatus.Created,
+                                StatusReason = AssignmentStatusReason.New,
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
@@ -197,8 +200,8 @@
             var assignmentVM =
                             new AssignmentViewModel
                             {
-                                Latitude = -34.605062,
-                                Longitude = -58.375979,
+                                InitialLocationLatitude = -34.605062,
+                                InitialLocationLongitude = -58.375979,
                                 ClientId = nonExistantClientId,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
@@ -233,8 +236,9 @@
                 new Assignment
                 {
                     Status = AssignmentStatus.Created,
+                    StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
-                    Location = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
+                    InitialLocation = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -246,8 +250,8 @@
                     Status = AssignmentStatus.InProgress,
                     CreationDateTime = assignment.CreationDateTime,
                     UpdateDateTime = DateTimeOffset.Now,
-                    Longitude = -58.375979,
-                    Latitude = -34.605062,
+                    InitialLocationLongitude = -58.375979,
+                    InitialLocationLatitude = -34.605062,
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -286,8 +290,8 @@
                     Status = AssignmentStatus.InProgress,
                     CreationDateTime = now.AddMinutes(-15.0d),
                     UpdateDateTime = now,
-                    Longitude = -58.375979,
-                    Latitude = -34.605062,
+                    InitialLocationLongitude = -58.375979,
+                    InitialLocationLatitude = -34.605062,
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -321,8 +325,9 @@
                 new Assignment
                 {
                     Status = AssignmentStatus.Created,
+                    StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
-                    Location = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
+                    InitialLocation = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -334,8 +339,8 @@
                     Status = AssignmentStatus.InProgress,
                     CreationDateTime = assignment.CreationDateTime,
                     UpdateDateTime = DateTimeOffset.Now,
-                    Longitude = -58.375979,
-                    Latitude = -34.605062,
+                    InitialLocationLongitude = -58.375979,
+                    InitialLocationLatitude = -34.605062,
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = nonExistantProviderId
@@ -372,7 +377,7 @@
                 {
                     Status = AssignmentStatus.Created,
                     CreationDateTime = DateTimeOffset.Now,
-                    Location = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
+                    InitialLocation = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -384,8 +389,8 @@
                     Status = AssignmentStatus.InProgress,
                     CreationDateTime = assignment.CreationDateTime,
                     UpdateDateTime = DateTimeOffset.Now,
-                    Longitude = -58.375979,
-                    Latitude = -34.605062,
+                    InitialLocationLongitude = -58.375979,
+                    InitialLocationLatitude = -34.605062,
                     ClientId = client.Id,
                     WorkerId = nonExistantWorkerId,
                     ProviderId = provider.Id
@@ -421,8 +426,9 @@
                 new Assignment
                 {
                     Status = AssignmentStatus.Created,
+                    StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
-                    Location = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
+                    InitialLocation = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -434,8 +440,8 @@
                     Status = AssignmentStatus.InProgress,
                     CreationDateTime = assignment.CreationDateTime,
                     UpdateDateTime = DateTimeOffset.Now,
-                    Longitude = -58.375979,
-                    Latitude = -34.605062,
+                    InitialLocationLongitude = -58.375979,
+                    InitialLocationLatitude = -34.605062,
                     ClientId = nonExistantClientId,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id

@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rscue.Api.ViewModels
 {
-    public class FleetViewModel
+    public class BoatTowViewModel
     {
         public string Id { get; set; }
 

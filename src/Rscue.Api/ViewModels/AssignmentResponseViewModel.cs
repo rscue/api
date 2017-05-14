@@ -15,15 +15,23 @@ namespace Rscue.Api.ViewModels
         
         public DateTimeOffset CreationDateTime { get; set; }
 
-        public double Latitude { get; set; }
+        public double InitialLocationLatitude { get; set; }
 
-        public double Longitude { get; set; }
+        public double InitialLocationLongitude { get; set; }
+
+        public double? ServiceLocationLatitude { get; set; }
+
+        public double? ServiceLocationLongitude { get; set; }
 
         public AssignmentStatus Status { get; set; }
+
+        public AssignmentStatusReason StatusReason { get; set; }
 
         public DateTimeOffset? UpdateDateTime { get; set; }
         
         public string WorkerId { get; set; }
+
+        public string BoatTowId { get; set; }
 
         public string Comments { get; set; }
 

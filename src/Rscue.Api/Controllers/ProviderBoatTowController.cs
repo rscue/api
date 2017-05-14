@@ -14,24 +14,24 @@ using Rscue.Api.ViewModels;
 namespace Rscue.Api.Controllers
 {
     [Authorize]
-    [Route("provider/{providerId}/fleet")]
-    public class ProviderFleetController : Controller
+    [Route("provider/{providerId}/boattow")]
+    public class ProviderBoatTowController : Controller
     {
-        private readonly IMongoCollection<Fleet> _collection;
+        private readonly IMongoCollection<BoatTow> _collection;
         private readonly IMongoCollection<Provider> _providerCollection;
 
-        public ProviderFleetController(IMongoDatabase mongoDatabase)
+        public ProviderBoatTowController(IMongoDatabase mongoDatabase)
         {
-            _collection = mongoDatabase.GetCollection<Fleet>("fleets");
+            _collection = mongoDatabase.GetCollection<BoatTow>("boattows");
             _providerCollection = mongoDatabase.GetCollection<Provider>("providers");
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(FleetViewModel), 201)]
+        [ProducesResponseType(typeof(BoatTowViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddFleet(string providerId, [FromBody] FleetViewModel fleet)
+        public async Task<IActionResult> AddBoatTow(string providerId, [FromBody] BoatTowViewModel boatTow)
         {
             if (ModelState.IsValid)
             {
@@ -42,19 +42,19 @@ namespace Rscue.Api.Controllers
                     return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
                 }
 
-                var model = new Fleet
+                var model = new BoatTow
                 {
-                    BoatModel = fleet.BoatModel,
-                    EngineType = fleet.EngineType,
-                    Name = fleet.Name,
-                    RegistrationNumber = fleet.RegistrationNumber,
+                    BoatModel = boatTow.BoatModel,
+                    EngineType = boatTow.EngineType,
+                    Name = boatTow.Name,
+                    RegistrationNumber = boatTow.RegistrationNumber,
                     ProviderId = provider.Id
                 };
 
                 await _collection.InsertOneAsync(model);
                 var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
-                fleet.Id = model.Id.ToString();
-                return await Task.FromResult(Created(uri, fleet));
+                boatTow.Id = model.Id.ToString();
+                return await Task.FromResult(Created(uri, boatTow));
             }
 
             return await Task.FromResult(BadRequest(ModelState.GetErrors()));
@@ -65,7 +65,7 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateFleet(string providerId, string id, [FromBody] FleetViewModel fleet)
+        public async Task<IActionResult> UpdateBoatTow(string providerId, string id, [FromBody] BoatTowViewModel boatTow)
         {
             if (ModelState.IsValid)
             {
@@ -84,12 +84,12 @@ namespace Rscue.Api.Controllers
                     return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
                 }
 
-                var model = new Fleet
+                var model = new BoatTow
                 {
-                    BoatModel = fleet.BoatModel,
-                    EngineType = fleet.EngineType,
-                    Name = fleet.Name,
-                    RegistrationNumber = fleet.RegistrationNumber,
+                    BoatModel = boatTow.BoatModel,
+                    EngineType = boatTow.EngineType,
+                    Name = boatTow.Name,
+                    RegistrationNumber = boatTow.RegistrationNumber,
                     Id = exists.Id,
                     ProviderId = provider.Id
                 };
@@ -102,38 +102,38 @@ namespace Rscue.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(FleetViewModel), 200)]
+        [ProducesResponseType(typeof(BoatTowViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetFleet(string providerId, string id)
+        public async Task<IActionResult> GetBoatTow(string providerId, string id)
         {
             var objId = ObjectId.Parse(id);
-            var fleet = await _collection.Find(x => x.Id == objId && x.ProviderId == providerId).SingleOrDefaultAsync();
+            var boatTow = await _collection.Find(x => x.Id == objId && x.ProviderId == providerId).SingleOrDefaultAsync();
 
-            if (fleet == null)
+            if (boatTow == null)
             {
                 return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
             }
 
-            var model = new FleetViewModel
+            var model = new BoatTowViewModel
             {
-                Id = fleet.Id.ToString(),
-                Name = fleet.Name,
-                RegistrationNumber = fleet.RegistrationNumber,
-                BoatModel = fleet.BoatModel,
-                EngineType = fleet.EngineType
+                Id = boatTow.Id.ToString(),
+                Name = boatTow.Name,
+                RegistrationNumber = boatTow.RegistrationNumber,
+                BoatModel = boatTow.BoatModel,
+                EngineType = boatTow.EngineType
             };
 
             return await Task.FromResult(Ok(model));
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<FleetViewModel>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<BoatTowViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetFleets(string providerId)
+        public async Task<IActionResult> GetBoatTows(string providerId)
         {
-            var models = _collection.AsQueryable().Where(x => x.ProviderId == providerId).ToList().Select(x => new FleetViewModel
+            var models = _collection.AsQueryable().Where(x => x.ProviderId == providerId).ToList().Select(x => new BoatTowViewModel
             {
                 Id = x.Id.ToString(),
                 Name = x.Name,
