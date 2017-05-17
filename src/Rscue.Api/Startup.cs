@@ -84,8 +84,6 @@ namespace Rscue.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            var secret = Encoding.UTF8.GetBytes(Configuration["Auth0Settings:Secret"]);
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -99,12 +97,8 @@ namespace Rscue.Api
             app.UseStaticFiles();            
             app.UseJwtBearerAuthentication(new JwtBearerOptions
             {
-                TokenValidationParameters =
-                {
-                    ValidIssuer = $"https://{Configuration["Auth0Settings:Domain"]}/",
-                    ValidAudience = Configuration["Auth0Settings:ClientId"],
-                    IssuerSigningKey = new SymmetricSecurityKey(secret)
-                }
+                Audience = $"https://{Configuration["Auth0Settings:Domain"]}/",
+                Authority = Configuration["Auth0Settings:ApiIdentifier"]
             });
             app.UseSwagger(c =>
             {
