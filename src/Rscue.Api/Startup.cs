@@ -97,8 +97,8 @@ namespace Rscue.Api
             app.UseStaticFiles();            
             app.UseJwtBearerAuthentication(new JwtBearerOptions
             {
-                Audience = $"https://{Configuration["Auth0Settings:Domain"]}/",
-                Authority = Configuration["Auth0Settings:ApiIdentifier"]
+                Authority = $"https://{Configuration["Auth0Settings:Domain"]}/",
+                Audience = Configuration["Auth0Settings:ApiIdentifier"]
             });
             app.UseSwagger(c =>
             {
