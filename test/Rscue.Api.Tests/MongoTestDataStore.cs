@@ -1,8 +1,10 @@
 ﻿namespace Rscue.Api.Tests
 {
+    using Rscue.Api.Extensions;
     using System;
     using Rscue.Api.Models;
     using MongoDB.Driver;
+    using System.Linq.Expressions;
 
     public class MongoTestDataStore : ITestDataStore
     {
@@ -33,6 +35,16 @@
             _mongoDatabase.Clients().DeleteOne(_ => _.Id == clientId);
         }
 
+        public void EnsureImageBucket(ImageBucket imageBucket)
+        {
+            _mongoDatabase.ImageBuckets().InsertOne(imageBucket);
+        }
+
+        public void EnsureImageBucketDoesNotExist(ImageBucketKey imageBucketKey)
+        {
+            _mongoDatabase.ImageBuckets().DeleteOne(_ => _.StoreBucket.Store == imageBucketKey.Store && _.StoreBucket.Bucket == imageBucketKey.Bucket);
+        }
+
         public void EnsureNoAssignments()
         {
             _mongoDatabase.Assignments().DeleteMany(_ => true);
@@ -61,6 +73,11 @@
         public void EnsureWorkerDoesNotExist(string workerId)
         {
             _mongoDatabase.Workers().DeleteOne(_ => _.Id == workerId);
+        }
+
+        public bool TestImageBucket(Expression<Func<ImageBucket, bool>> filter)
+        {
+            return _mongoDatabase.ImageBuckets().Find(filter).SingleOrDefault() != null;
         }
     }
 }

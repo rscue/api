@@ -48,7 +48,7 @@ namespace Rscue.Api.Models
         public string Comments { get; set; }
 
         [BsonElement]
-        public IList<string> ImageUrls { get; set; }
+        public ImageBucketKey ImageBucketKey { get; set; }
 
         [BsonElement]
         public TimeSpan? EstimatedTimeOfArrival { get; set; }

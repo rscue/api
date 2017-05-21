@@ -23,6 +23,7 @@ using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 using Swashbuckle.AspNetCore.Swagger;
 using Rscue.Api.Services;
+using System.Threading;
 
 namespace Rscue.Api
 {
@@ -82,8 +83,9 @@ namespace Rscue.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IImageStore imageStore)
         {
+            imageStore.ProvisionStores(CancellationToken.None);
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -93,6 +95,7 @@ namespace Rscue.Api
             {
                 app.UseStatusCodePages();
             }
+
             app.UseCors("AllowAll");
             app.UseStaticFiles();            
             app.UseJwtBearerAuthentication(new JwtBearerOptions

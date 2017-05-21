@@ -10,6 +10,7 @@ using MongoDB.Driver;
 using Rscue.Api.Models;
 using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
+using Rscue.Api.Services;
 
 namespace Rscue.Api.Controllers
 {
@@ -20,10 +21,15 @@ namespace Rscue.Api.Controllers
         private readonly IMongoDatabase _mongoDatabase;
         private readonly AzureSettings _appSettings;
 
-        public ProviderController(IMongoDatabase mongoDatabase, IOptions<AzureSettings> appSettings)
+        private readonly IProviderRepository _providerRepository;
+        private readonly IImageStore _imageStore;
+
+        public ProviderController(IMongoDatabase mongoDatabase, IOptions<AzureSettings> appSettings, IProviderRepository providerRepository, IImageStore imageStore)
         {
             _mongoDatabase = mongoDatabase;
             _appSettings = appSettings.Value;
+            _providerRepository = providerRepository;
+            _imageStore = imageStore;
         }
 
         [HttpPost]
@@ -32,33 +38,30 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddProvider([FromBody] ProviderViewModel provider)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
+            if (exists != null)
             {
-                var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
-                if (exists != null)
-                {
-                    await Task.FromResult(BadRequest($"Ya existe in proveedor con id {provider.Id}"));
-                }
-
-                var model = new Provider
-                {
-                    Id = provider.Id,
-                    Email = provider.Email,
-                    Name = provider.Name,
-                    AvatarUri = provider.AvatarUri,
-                    State = provider.State,
-                    City = provider.City,
-                    ZipCode = provider.ZipCode,
-                    Address = provider.Address
-                };
-
-                await _mongoDatabase.GetCollection<Provider>("providers").InsertOneAsync(model);
-
-                var uri = new Uri($"{Request.GetEncodedUrl()}/{provider.Id}");
-                return await Task.FromResult(Created(uri, provider));
+                await Task.FromResult(BadRequest($"Ya existe in proveedor con id {provider.Id}"));
             }
 
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
+            var model = new Provider
+            {
+                Id = provider.Id,
+                Email = provider.Email,
+                Name = provider.Name,
+                AvatarUri = provider.AvatarUri,
+                State = provider.State,
+                City = provider.City,
+                ZipCode = provider.ZipCode,
+                Address = provider.Address
+            };
+
+            await _mongoDatabase.GetCollection<Provider>("providers").InsertOneAsync(model);
+
+            var uri = new Uri($"{Request.GetEncodedUrl()}/{provider.Id}");
+            return await Task.FromResult(Created(uri, provider));
         }
 
         [HttpPut]
@@ -68,30 +71,27 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> UpdateProvider([FromBody] ProviderViewModel provider)
         {
-            if (ModelState.IsValid)
-            {
-                var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
-                if (exists == null)
-                {
-                    return await Task.FromResult(NotFound($"No existe un proveedor con el id {provider.Id}"));
-                }
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-                var model = new Provider
-                {
-                    Id = provider.Id,
-                    Email = provider.Email,
-                    Name = provider.Name,
-                    AvatarUri = provider.AvatarUri,
-                    State = provider.State,
-                    City = provider.City,
-                    ZipCode = provider.ZipCode,
-                    Address = provider.Address
-                };
-                await _mongoDatabase.GetCollection<Provider>("providers").ReplaceOneAsync(x => x.Id == provider.Id, model);
-                return await Task.FromResult(Ok(provider));
+            var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
+            if (exists == null)
+            {
+                return await Task.FromResult(NotFound($"No existe un proveedor con el id {provider.Id}"));
             }
 
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
+            var model = new Provider
+            {
+                Id = provider.Id,
+                Email = provider.Email,
+                Name = provider.Name,
+                AvatarUri = provider.AvatarUri,
+                State = provider.State,
+                City = provider.City,
+                ZipCode = provider.ZipCode,
+                Address = provider.Address
+            };
+            await _mongoDatabase.GetCollection<Provider>("providers").ReplaceOneAsync(x => x.Id == provider.Id, model);
+            return await Task.FromResult(Ok(provider));
         }
 
         [Route("{id}")]
@@ -118,6 +118,7 @@ namespace Rscue.Api.Controllers
                 ZipCode = provider.ZipCode,
                 Address = provider.Address
             };
+
             return await Task.FromResult(Ok(model));
         }
 
@@ -165,7 +166,8 @@ namespace Rscue.Api.Controllers
             }
 
             var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
-            var beginDay = DateTimeOffset.Now - DateTimeOffset.Now.TimeOfDay;
+            var now = DateTimeOffset.Now;
+            var beginDay = now - now.TimeOfDay;
             var assignmentsCreated = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && (x.Status == AssignmentStatus.Created || x.Status == AssignmentStatus.Assigned)).CountAsync();
             var assignmentsInProgress = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.InProgress).CountAsync();
             var assignmentsCompleted = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Completed).CountAsync();

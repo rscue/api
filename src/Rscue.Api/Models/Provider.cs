@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
 
 namespace Rscue.Api.Models
 {
