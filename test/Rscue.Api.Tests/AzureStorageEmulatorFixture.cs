@@ -23,7 +23,7 @@
             _startASE = new ProcessStartInfo
             {
                 FileName = aseLocation,
-                Arguments = "start -inprocess"
+                Arguments = "start"
             };
 
             _stopASE = new ProcessStartInfo()
