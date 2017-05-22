@@ -8,6 +8,14 @@
 
     public class AzureStorageEmulatorFixture : IDisposable
     {
+        /*
+         * 
+         * issues with using hosted server
+         * 
+         * https://github.com/Microsoft/vso-agent/issues/72
+         * 
+         */
+
         private Process _process;
         private static string storageEmulatorLocation = @"%ProgramFiles(x86)%\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe";
         private ProcessStartInfo _startASE;

@@ -21,7 +21,7 @@
             _imageStore = new ImageStore(Options.Create(azureSettings));
         }
 
-        [Fact]
+        //[Fact]
         public async Task TestProvisionStoresCompletedWithoutErrors()
         {
             // arrange
@@ -40,7 +40,7 @@
 
         }
 
-        [Fact]
+        //[Fact]
         public async Task TestUploadImageAndDownloadimage()
         {
             // arrange
