@@ -32,17 +32,15 @@
                 Arguments = "stop"
             };
 
-            _process = Process.Start(_startASE);
+            Process.Start(_startASE)
+                .ForceWait()
+                .Dispose();
         }
 
         public void Dispose()
         {
             Process
                 .Start(_stopASE)
-                .ForceWait()
-                .Dispose();
-
-            _process
                 .ForceWait()
                 .Dispose();
         }
