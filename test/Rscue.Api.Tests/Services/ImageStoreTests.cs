@@ -11,17 +11,17 @@
 
     [Collection("ImageStore")]
     [Trait("DependsOn", "azure blob storage")]
-    public class ImageStoreTests : IClassFixture<AzureStorageEmulatorFixture>
+    public class ImageStoreTests
     {
         private readonly ImageStore _imageStore;
 
         public ImageStoreTests()
         {
-            var azureSettings = new AzureSettings { StorageConnectionString = "UseDevelopmentStorage=true" };
+            var azureSettings = new AzureSettings { StorageConnectionString = "DefaultEndpointsProtocol=https;AccountName=rscuestoreunittest;AccountKey=AOxLUIRkQ8M+o7sR0lV6V0syRS7NO6Px8IyJP9e6Bx5zojd53iKtLgQ9A31sNnJlk8utLbCYNnuMpSdImmTucw==;EndpointSuffix=core.windows.net" };
             _imageStore = new ImageStore(Options.Create(azureSettings));
         }
 
-        //[Fact]
+        [Fact]
         public async Task TestProvisionStoresCompletedWithoutErrors()
         {
             // arrange
@@ -40,7 +40,7 @@
 
         }
 
-        //[Fact]
+        [Fact]
         public async Task TestUploadImageAndDownloadimage()
         {
             // arrange
