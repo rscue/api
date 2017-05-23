@@ -39,5 +39,8 @@ namespace Rscue.Api.Models
         [Required]
         [BsonElement]
         public Uri AvatarUri { get; set; }
+
+        [BsonElement]
+        public ImageBucketKey ProviderImageBucketKey { get; set; }
     }
 }

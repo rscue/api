@@ -4,27 +4,29 @@
     using Moq;
     using Rscue.Api.Services;
     using System;
+    using System.Collections.Generic;
+    using System.Text;
     using System.Threading.Tasks;
     using Xunit;
 
-    [Collection("ImageBucketRepository")]
-    public class ImageBucketRepositoryExceptionsTests
+    [Collection("ProviderRepository")]
+    public class ProviderRepositoryExceptionssTests
     {
         private readonly IMongoDatabase _mongoDatabase;
 
-        public ImageBucketRepositoryExceptionsTests()
+        public ProviderRepositoryExceptionssTests()
         {
             _mongoDatabase = new Mock<IMongoDatabase>().Object;
         }
 
         [Fact]
-        public void ImageBucketRepositoryShouldNotBuildWithNullMongoDatabase()
+        public void ProviderRepositoryShouldNotBuildWithNullMongoDatabase()
         {
             // arrange
             // nothing to do
 
             // act (deferred)
-            var testCode = (Action)(() => new ImageBucketRepository(null));
+            var testCode = (Action)(() => new ProviderRepository(null));
 
             // assert
             Assert.Throws<ArgumentNullException>(testCode);
@@ -34,10 +36,10 @@
         public async Task GetImageBucketShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
-            var imageBucketRepository = new ImageBucketRepository(_mongoDatabase);
+            var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await imageBucketRepository.GetImageBucket(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.GetProviderByIdAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
@@ -47,10 +49,10 @@
         public async Task NewImageBucketShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
-            var imageBucketRepository = new ImageBucketRepository(_mongoDatabase);
+            var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await imageBucketRepository.NewImageBucket(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.NewProviderAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
@@ -60,13 +62,14 @@
         public async Task UpdateImageBucketShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
-            var imageBucketRepository = new ImageBucketRepository(_mongoDatabase);
+            var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await imageBucketRepository.UpdateImageBucket(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.UpdateProviderAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
+
     }
 }
