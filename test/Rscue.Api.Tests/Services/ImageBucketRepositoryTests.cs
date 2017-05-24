@@ -150,7 +150,7 @@
         }
 
         [Fact]
-        public async Task TestUpdateImageBucketReturnsNullOnNonExistantIamgeBucket()
+        public async Task TestUpdateImageBucketReturnsNullOnNonExistantImageBucket()
         {
             // arrange
             var key = new ImageBucketKey

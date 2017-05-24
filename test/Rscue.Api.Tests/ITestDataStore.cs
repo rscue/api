@@ -21,5 +21,6 @@
         void EnsureWorkerDoesNotExist(string workerId);
 
         bool TestImageBucket(Expression<Func<ImageBucket, bool>> predicate);
+        bool TestProvider(Expression<Func<Provider, bool>> predicate);
     }
 }

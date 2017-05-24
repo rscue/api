@@ -79,5 +79,10 @@
         {
             return _mongoDatabase.ImageBuckets().Find(filter).SingleOrDefault() != null;
         }
+
+        public bool TestProvider(Expression<Func<Provider, bool>> filter)
+        {
+            return _mongoDatabase.Providers().Find(filter).SingleOrDefault() != null;
+        }
     }
 }

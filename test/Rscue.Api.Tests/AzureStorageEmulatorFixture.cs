@@ -4,7 +4,6 @@
     using System;
     using System.Diagnostics;
     using System.IO;
-    using System.Threading;
 
     public class AzureStorageEmulatorFixture : IDisposable
     {
@@ -16,7 +15,6 @@
          * 
          */
 
-        private Process _process;
         private static string storageEmulatorLocation = @"%ProgramFiles(x86)%\Microsoft SDKs\Azure\Storage Emulator\AzureStorageEmulator.exe";
         private ProcessStartInfo _startASE;
         private ProcessStartInfo _stopASE;
