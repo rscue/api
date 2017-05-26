@@ -4,8 +4,6 @@
     using Moq;
     using Rscue.Api.Services;
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using System.Threading.Tasks;
     using Xunit;
 
@@ -33,43 +31,55 @@
         }
 
         [Fact]
-        public async Task GetImageBucketShouldThrowArgumentNullExceptionOnNullKey()
+        public async Task GetByIdAsyncShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
             var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await providerRepository.GetProviderByIdAsync(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.GetByIdAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
 
         [Fact]
-        public async Task NewImageBucketShouldThrowArgumentNullExceptionOnNullKey()
+        public async Task NewAsyncShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
             var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await providerRepository.NewProviderAsync(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.NewAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
 
         [Fact]
-        public async Task UpdateImageBucketShouldThrowArgumentNullExceptionOnNullKey()
+        public async Task UpdateAsyncShouldThrowArgumentNullExceptionOnNullKey()
         {
             // arrange
             var providerRepository = new ProviderRepository(_mongoDatabase);
 
             // act (deferred)
-            var testCode = (Func<Task>)(async () => await providerRepository.UpdateProviderAsync(null));
+            var testCode = (Func<Task>)(async () => await providerRepository.UpdateAsync(null));
 
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
 
+        [Fact]
+        public async Task PatchAllButProviderImageStoreAsyncShouldThrowArgumentNullExceptionOnNullKey()
+        {
+            // arrange
+            var providerRepository = new ProviderRepository(_mongoDatabase);
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerRepository.PatchAllButProviderImageStoreAsync(null));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>(testCode);
+        }
     }
 }

@@ -30,6 +30,7 @@
             var provider = new Provider
             {
                 Id = id,
+                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -42,13 +43,14 @@
             _dataStore.EnsureProvider(provider);
 
             // act 
-            var (providerResult, outcomeAction, error) = await _providerRepository.GetProviderByIdAsync(id);
+            var (providerResult, outcomeAction, error) = await _providerRepository.GetByIdAsync(id);
 
             // assert
             Assert.NotNull(providerResult);
             Assert.Equal(RepositoryOutcomeAction.OkNone, outcomeAction);
             Assert.Null(error);
             Assert.Equal(provider.Id, providerResult.Id);
+            Assert.Equal(provider.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(provider.City, providerResult.City);
             Assert.Equal(provider.State, providerResult.State);
             Assert.Equal(provider.Name, providerResult.Name);
@@ -68,7 +70,7 @@
             _dataStore.EnsureProviderDoesNotExist(id);
 
             // act 
-            var (providerResult, outcomeAction, error) = await _providerRepository.GetProviderByIdAsync(id);
+            var (providerResult, outcomeAction, error) = await _providerRepository.GetByIdAsync(id);
 
             // assert
             Assert.Null(providerResult);
@@ -82,6 +84,7 @@
             // arrange
             var provider = new Provider
             {
+                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -92,7 +95,7 @@
             };
 
             // act
-            var (providerResult, outcomeAction, error) = await _providerRepository.NewProviderAsync(provider);
+            var (providerResult, outcomeAction, error) = await _providerRepository.NewAsync(provider);
 
             // assert
             Assert.NotNull(providerResult);
@@ -100,6 +103,7 @@
             Assert.Null(error);
             // here we check that what was returned is the same as we sent.
             Assert.NotNull(providerResult.Id);
+            Assert.Equal(provider.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(provider.City, providerResult.City);
             Assert.Equal(provider.State, providerResult.State);
             Assert.Equal(provider.Name, providerResult.Name);
@@ -112,6 +116,7 @@
                 _dataStore
                     .TestProvider(_ =>
                         _.Id == providerResult.Id &&
+                        _.Auth0Id == providerResult.Auth0Id &&
                         _.City == providerResult.City &&
                         _.Name == providerResult.Name &&
                         _.Email == providerResult.Email &&
@@ -122,13 +127,14 @@
         }
 
         [Fact]
-        public async Task TestUpdateImageBucketUpdatesExitentImageBucket()
+        public async Task TestUpdateAsyncUpdatesExitentImageBucket()
         {
             // arrange
             var id = Guid.NewGuid().ToString("n");
             var providerUpdate = new Provider
             {
                 Id = id,
+                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "Mr. Plow",
@@ -142,6 +148,7 @@
                 new Provider
                 {
                     Id = id,
+                    Auth0Id = Guid.NewGuid().ToString("n"),
                     City = "Springfield",
                     State = "Illinois",
                     Name = "TowNow!",
@@ -152,7 +159,7 @@
                 });
 
             // act 
-            var (providerResult, outcomeAction, error) = await _providerRepository.UpdateProviderAsync(providerUpdate);
+            var (providerResult, outcomeAction, error) = await _providerRepository.UpdateAsync(providerUpdate);
 
             // assert
             Assert.NotNull(providerResult);
@@ -160,6 +167,7 @@
             Assert.Null(error);
 
             Assert.Equal(providerUpdate.Id, providerResult.Id);
+            Assert.Equal(providerUpdate.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(providerUpdate.City, providerResult.City);
             Assert.Equal(providerUpdate.State, providerResult.State);
             Assert.Equal(providerUpdate.Name, providerResult.Name);
@@ -173,6 +181,7 @@
                 _dataStore
                     .TestProvider(_ =>
                         _.Id == providerResult.Id &&
+                        _.Auth0Id == providerResult.Auth0Id &&
                         _.City == providerResult.City &&
                         _.Name == providerResult.Name &&
                         _.Email == providerResult.Email &&
@@ -183,7 +192,7 @@
         }
 
         [Fact]
-        public async Task TestUpdateProviderAsynctReturnsNullOnNonExistantProvider()
+        public async Task TestUpdateAsyncReturnsNullOnNonExistantProvider()
         {
             // arrange
             var id = "0000ffff0000ffff0000ffff0000ffff";
@@ -191,6 +200,7 @@
             var providerToUpdate = new Provider
             {
                 Id = id,
+                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -203,7 +213,7 @@
             _dataStore.EnsureProviderDoesNotExist(id);
 
             // act 
-            var (updateProvider, outcomeAction, error) = await _providerRepository.UpdateProviderAsync(providerToUpdate);
+            var (updateProvider, outcomeAction, error) = await _providerRepository.UpdateAsync(providerToUpdate);
 
             // assert
             Assert.Null(updateProvider);
@@ -211,6 +221,99 @@
             Assert.Null(error);
         }
 
-    }
+        [Fact]
+        public async Task TestPatchAllButProviderImageStoreAsyncUpdatesExitentProviderButProviderImageStore()
+        {
+            // arrange
+            var id = Guid.NewGuid().ToString("n");
+            var providerUpdate = new Provider
+            {
+                Id = id,
+                Auth0Id = Guid.NewGuid().ToString("n"),
+                City = "Springfield",
+                State = "Illinois",
+                Name = "Mr. Plow",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-other-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
 
+            _dataStore.EnsureProvider(
+                new Provider
+                {
+                    Id = id,
+                    Auth0Id = Guid.NewGuid().ToString("n"),
+                    City = "Springfield",
+                    State = "Illinois",
+                    Name = "TowNow!",
+                    Email = "call@townow.com",
+                    ZipCode = "2342",
+                    ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                    Address = "742 Evergreen Terrace",
+                });
+
+            // act 
+            var (providerResult, outcomeAction, error) = await _providerRepository.PatchAllButProviderImageStoreAsync(providerUpdate);
+
+            // assert
+            Assert.NotNull(providerResult);
+            Assert.Equal(RepositoryOutcomeAction.OkUpdated, outcomeAction);
+            Assert.Null(error);
+
+            Assert.Equal(providerUpdate.Id, providerResult.Id);
+            Assert.Equal(providerUpdate.Auth0Id, providerResult.Auth0Id);
+            Assert.Equal(providerUpdate.City, providerResult.City);
+            Assert.Equal(providerUpdate.State, providerResult.State);
+            Assert.Equal(providerUpdate.Name, providerResult.Name);
+            Assert.Equal(providerUpdate.Email, providerResult.Email);
+            Assert.Equal(providerUpdate.ZipCode, providerResult.ZipCode);
+            Assert.NotEqual(providerUpdate.ProviderImageBucketKey?.Store, providerResult.ProviderImageBucketKey?.Store);
+            Assert.NotEqual(providerUpdate.ProviderImageBucketKey?.Bucket, providerResult.ProviderImageBucketKey?.Bucket);
+            Assert.Equal(providerUpdate.Address, providerResult.Address);
+
+            Assert.True(
+                _dataStore
+                    .TestProvider(_ =>
+                        _.Id == providerResult.Id &&
+                        _.Auth0Id == providerResult.Auth0Id &&
+                        _.City == providerResult.City &&
+                        _.Name == providerResult.Name &&
+                        _.Email == providerResult.Email &&
+                        _.ZipCode == providerResult.ZipCode &&
+                        ((_.ProviderImageBucketKey != null && providerResult.ProviderImageBucketKey != null) || _.ProviderImageBucketKey.Store != providerResult.ProviderImageBucketKey.Store) &&
+                        ((_.ProviderImageBucketKey != null && providerResult.ProviderImageBucketKey != null) || _.ProviderImageBucketKey.Bucket != providerResult.ProviderImageBucketKey.Bucket) &&
+                        _.Address == providerResult.Address));
+        }
+
+        [Fact]
+        public async Task TestPatchAllButProviderImageStoreAsyncReturnsNullOnNonExistantProvider()
+        {
+            // arrange
+            var id = "0000ffff0000ffff0000ffff0000ffff";
+
+            var providerToUpdate = new Provider
+            {
+                Id = id,
+                Auth0Id = Guid.NewGuid().ToString("n"),
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            _dataStore.EnsureProviderDoesNotExist(id);
+
+            // act 
+            var (updateProvider, outcomeAction, error) = await _providerRepository.PatchAllButProviderImageStoreAsync(providerToUpdate);
+
+            // assert
+            Assert.Null(updateProvider);
+            Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
+            Assert.Null(error);
+        }
+    }
 }

@@ -12,5 +12,10 @@
             urlHelper != null && store != null && bucket != null
                 ? urlHelper.RouteUrl("GetImages", new { store = store, bucket = bucket })
                 : null;
+
+        public static string BuildGetProviderProfilePictureUrl(IUrlHelper urlHelper, string store, string bucket) =>
+            urlHelper != null && store != null && bucket != null
+                ? urlHelper.RouteUrl("GetImage", new { store = store, bucket = bucket, name = "profilepicture" })
+                : null;
     }
 }

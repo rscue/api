@@ -13,6 +13,10 @@ namespace Rscue.Api.Models
 
         [Required]
         [BsonElement]
+        public string Auth0Id { get; set; }
+
+        [Required]
+        [BsonElement]
         public string Name { get; set; }
 
         [Required]

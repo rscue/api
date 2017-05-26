@@ -1,67 +1,69 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.WindowsAzure.Storage;
-using MongoDB.Driver;
-using Rscue.Api.Models;
-using Rscue.Api.Plumbing;
-using Rscue.Api.ViewModels;
-using Rscue.Api.Services;
-
-namespace Rscue.Api.Controllers
+﻿namespace Rscue.Api.Controllers
 {
+    using Extensions;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Options;
+    using Microsoft.WindowsAzure.Storage;
+    using MongoDB.Driver;
+    using Rscue.Api.BindingModels;
+    using Rscue.Api.Models;
+    using Rscue.Api.Plumbing;
+    using Rscue.Api.Services;
+    using Rscue.Api.ViewModels;
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+
     [Authorize]
     [Route("provider")]
     public class ProviderController : Controller
     {
-        private readonly IMongoDatabase _mongoDatabase;
-        private readonly AzureSettings _appSettings;
-
         private readonly IProviderRepository _providerRepository;
-        private readonly IImageStore _imageStore;
+        private readonly IImageBucketRepository _imageBucketRepository;
 
-        public ProviderController(IMongoDatabase mongoDatabase, IOptions<AzureSettings> appSettings, IProviderRepository providerRepository, IImageStore imageStore)
+        public ProviderController(IProviderRepository providerRepository, IImageBucketRepository imageBucketRepository)
         {
-            _mongoDatabase = mongoDatabase;
-            _appSettings = appSettings.Value;
             _providerRepository = providerRepository;
-            _imageStore = imageStore;
+            _imageBucketRepository = imageBucketRepository;
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(ProviderViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddProvider([FromBody] ProviderViewModel provider)
+        public async Task<IActionResult> NewProvider([FromBody] ProviderBindingModel providerBindingModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-            var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
-            if (exists != null)
+            var (imageBucket, outcomeAction, error) =
+                await _imageBucketRepository.NewImageBucket(
+                    new ImageBucket
+                    {
+                        StoreBucket = new ImageBucketKey { Store = Constants.PROVIDER_IMAGES_STORE },
+                        ImageList = new List<string>()
+                    });
+
+            if (outcomeAction != RepositoryOutcomeAction.OkCreated)
             {
-                await Task.FromResult(BadRequest($"Ya existe in proveedor con id {provider.Id}"));
+                return this.StatusCode(500, error);
             }
 
-            var model = new Provider
+            var provider = new Provider
             {
-                Id = provider.Id,
-                Email = provider.Email,
-                Name = provider.Name,
-                AvatarUri = provider.AvatarUri,
-                State = provider.State,
-                City = provider.City,
-                ZipCode = provider.ZipCode,
-                Address = provider.Address
+                Auth0Id = providerBindingModel.Auth0Id,
+                Email = providerBindingModel.Email,
+                Name = providerBindingModel.Name,
+                State = providerBindingModel.State,
+                City = providerBindingModel.City,
+                ZipCode = providerBindingModel.ZipCode,
+                Address = providerBindingModel.Address,
+                ProviderImageBucketKey = imageBucket.StoreBucket,
             };
 
-            await _mongoDatabase.GetCollection<Provider>("providers").InsertOneAsync(model);
+            (provider, outcomeAction, error) = await _providerRepository.NewAsync(provider);
 
-            var uri = new Uri($"{Request.GetEncodedUrl()}/{provider.Id}");
-            return await Task.FromResult(Created(uri, provider));
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider), nameof(GetProvider), new { id = provider?.Id });
         }
 
         [HttpPut]
@@ -69,119 +71,60 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateProvider([FromBody] ProviderViewModel provider)
+        public async Task<IActionResult> UpdateProvider(string id, [FromBody] ProviderViewModel providerBindingModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-            var exists = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == provider.Id).SingleOrDefaultAsync();
-            if (exists == null)
+            var providerPatch = new Provider
             {
-                return await Task.FromResult(NotFound($"No existe un proveedor con el id {provider.Id}"));
-            }
-
-            var model = new Provider
-            {
-                Id = provider.Id,
-                Email = provider.Email,
-                Name = provider.Name,
-                AvatarUri = provider.AvatarUri,
-                State = provider.State,
-                City = provider.City,
-                ZipCode = provider.ZipCode,
-                Address = provider.Address
+                Id = id,
+                Auth0Id = providerBindingModel.Auth0Id,
+                Email = providerBindingModel.Email,
+                Name = providerBindingModel.Name,
+                State = providerBindingModel.State,
+                City = providerBindingModel.City,
+                ZipCode = providerBindingModel.ZipCode,
+                Address = providerBindingModel.Address,
             };
-            await _mongoDatabase.GetCollection<Provider>("providers").ReplaceOneAsync(x => x.Id == provider.Id, model);
-            return await Task.FromResult(Ok(provider));
+
+            var (provider, outcomeAction, error) = 
+                await _providerRepository.PatchAllButProviderImageStoreAsync(providerPatch);
+
+            return this.FromRepositoryOutcome(outcomeAction, error, provider);
         }
 
-        [Route("{id}")]
+        [Route("{id}", Name = "GetProvider")]
         [HttpGet]
         [ProducesResponseType(typeof(ProviderViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetProvider(string id)
         {
-            var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == id).SingleOrDefaultAsync();
-            if (provider == null)
-            {
-                return await Task.FromResult(NotFound($"No existe un proveedor con el id {id}"));
-            }
+            var (provider, outcomeAction, error) = 
+                await _providerRepository.GetByIdAsync(id);
 
-            var model = new ProviderViewModel
-            {
-                Id = provider.Id,
-                Email = provider.Email,
-                Name = provider.Name,
-                AvatarUri = provider.AvatarUri,
-                State = provider.State,
-                City = provider.City,
-                ZipCode = provider.ZipCode,
-                Address = provider.Address
-            };
+            var providerResult =
+                outcomeAction == RepositoryOutcomeAction.OkNone
+                    ? MapToProviderViewModel(provider)
+                    : null;
 
-            return await Task.FromResult(Ok(model));
+            return this.FromRepositoryOutcome(outcomeAction, error, providerResult);
         }
 
-        [Route("{id}/profilepic")]
-        [HttpPost]
-        [ProducesResponseType(typeof(string), 200)]
-        [ProducesResponseType(typeof(string), 404)]
-        [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateProfilePicture(string id, [FromBody] AvatarViewModel avatar)
-        {
-            var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == id).SingleOrDefaultAsync();
-            if (provider == null)
-            {
-                return await Task.FromResult(NotFound($"No existe un proveedor con el id {id}"));
-            }
-
-            var dataImage = avatar.ImageBase64.Split(',');
-            var imageBytes = Convert.FromBase64String(dataImage[1]);
-            var mimeString = dataImage[0].Split(':')[1].Split(';')[0];
-            var extension = mimeString.Split('/')[1];
-            var imageName = $"{id}.{extension}".Replace("|", "");
-            var cloudStorageAccount = CloudStorageAccount.Parse(_appSettings.StorageConnectionString);
-            var blobClient = cloudStorageAccount.CreateCloudBlobClient();
-            var blobContainer = blobClient.GetContainerReference("profilepics");
-            var blockBlob = blobContainer.GetBlockBlobReference(imageName);
-            await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
-
-            var updateDefinitition = new UpdateDefinitionBuilder<Provider>().Set(x => x.AvatarUri, blockBlob.Uri);
-            await _mongoDatabase.GetCollection<Provider>("providers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
-
-            return await Task.FromResult(Ok(blockBlob.Uri));
-        }
-
-        [HttpGet]
-        [Route("{id}/assignmentssummary")]
-        [ProducesResponseType(typeof(AssignmentsSummaryViewModel), 200)]
-        [ProducesResponseType(typeof(string), 404)]
-        [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetAssignmentsSummary(string id)
-        {
-            var provider = await _mongoDatabase.GetCollection<Provider>("providers").Find(x => x.Id == id).SingleOrDefaultAsync();
-            if (provider == null)
-            {
-                return await Task.FromResult(NotFound($"No existe un proveedor con el id {id}"));
-            }
-
-            var collection = _mongoDatabase.GetCollection<Assignment>("assignments");
-            var now = DateTimeOffset.Now;
-            var beginDay = now - now.TimeOfDay;
-            var assignmentsCreated = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && (x.Status == AssignmentStatus.Created || x.Status == AssignmentStatus.Assigned)).CountAsync();
-            var assignmentsInProgress = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.InProgress).CountAsync();
-            var assignmentsCompleted = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Completed).CountAsync();
-            var assignmentsCancelled = await collection.Find(x => x.ProviderId == id && x.CreationDateTime > beginDay && x.Status == AssignmentStatus.Cancelled).CountAsync();
-
-            var assignmentsSummary = new AssignmentsSummaryViewModel
-            {
-                Created = assignmentsCreated,
-                InProgress = assignmentsInProgress,
-                Completed = assignmentsCompleted,
-                Cancelled = assignmentsCancelled
-            };
-
-            return await Task.FromResult(Ok(assignmentsSummary));
-        }
+        private ProviderViewModel MapToProviderViewModel(Provider provider) =>
+            provider != null
+                ? null
+                : new ProviderViewModel
+                {
+                    Id = provider.Id,
+                    Auth0Id = provider.Auth0Id,
+                    Email = provider.Email,
+                    Name = provider.Name,
+                    State = provider.State,
+                    City = provider.City,
+                    ZipCode = provider.ZipCode,
+                    Address = provider.Address,
+                    ProfileUrl = ControllerFunctions.BuildGetProviderProfilePictureUrl(Url, provider?.ProviderImageBucketKey?.Store, provider?.ProviderImageBucketKey.Bucket)
+                };
     }
 }

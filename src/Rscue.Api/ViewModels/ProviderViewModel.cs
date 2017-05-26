@@ -8,6 +8,8 @@ namespace Rscue.Api.ViewModels
         [Required(ErrorMessage = "El campo es requerido")]
         public string Id { get; set; }
 
+        public string Auth0Id { get; set; }
+
         [Required(ErrorMessage = "El campo es requerido")]
         public string Name { get; set; }
 
@@ -29,5 +31,7 @@ namespace Rscue.Api.ViewModels
 
         [Required(ErrorMessage = "El campo es requerido")]
         public Uri AvatarUri { get; set; }
+
+        public string ProfileUrl { get; set; }
     }
 }
