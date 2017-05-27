@@ -47,7 +47,7 @@ namespace Rscue.Api
             ApplicationServicesHelper.ConfigureApplicationServices(services);
             services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+                options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Location"));
             });
             services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
             services.Configure<Auth0Settings>(Configuration.GetSection("Auth0Settings"));
