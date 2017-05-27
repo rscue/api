@@ -32,6 +32,6 @@ namespace Rscue.Api.ViewModels
         [Required(ErrorMessage = "El campo es requerido")]
         public Uri AvatarUri { get; set; }
 
-        public string ProfileUrl { get; set; }
+        public string ProfilePictureUrl { get; set; }
     }
 }

@@ -24,8 +24,8 @@
 
         public ProviderController(IProviderRepository providerRepository, IImageBucketRepository imageBucketRepository)
         {
-            _providerRepository = providerRepository;
-            _imageBucketRepository = imageBucketRepository;
+            _providerRepository = providerRepository ?? throw new ArgumentNullException(nameof(providerRepository));
+            _imageBucketRepository = imageBucketRepository ?? throw new ArgumentNullException(nameof(imageBucketRepository));
         }
 
         [HttpPost]
@@ -71,7 +71,7 @@
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateProvider(string id, [FromBody] ProviderViewModel providerBindingModel)
+        public async Task<IActionResult> UpdateProvider(string id, [FromBody] ProviderBindingModel providerBindingModel)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
@@ -90,7 +90,7 @@
             var (provider, outcomeAction, error) = 
                 await _providerRepository.PatchAllButProviderImageStoreAsync(providerPatch);
 
-            return this.FromRepositoryOutcome(outcomeAction, error, provider);
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider));
         }
 
         [Route("{id}", Name = "GetProvider")]
@@ -113,8 +113,7 @@
 
         private ProviderViewModel MapToProviderViewModel(Provider provider) =>
             provider != null
-                ? null
-                : new ProviderViewModel
+                ? new ProviderViewModel
                 {
                     Id = provider.Id,
                     Auth0Id = provider.Auth0Id,
@@ -124,7 +123,8 @@
                     City = provider.City,
                     ZipCode = provider.ZipCode,
                     Address = provider.Address,
-                    ProfileUrl = ControllerFunctions.BuildGetProviderProfilePictureUrl(Url, provider?.ProviderImageBucketKey?.Store, provider?.ProviderImageBucketKey.Bucket)
-                };
+                    ProfilePictureUrl = ControllerFunctions.BuildGetProviderProfilePictureUrl(Url, provider?.ProviderImageBucketKey?.Store, provider?.ProviderImageBucketKey.Bucket)
+                }
+                : null;
     }
 }
