@@ -30,7 +30,6 @@
             var provider = new Provider
             {
                 Id = id,
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -50,7 +49,6 @@
             Assert.Equal(RepositoryOutcomeAction.OkNone, outcomeAction);
             Assert.Null(error);
             Assert.Equal(provider.Id, providerResult.Id);
-            Assert.Equal(provider.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(provider.City, providerResult.City);
             Assert.Equal(provider.State, providerResult.State);
             Assert.Equal(provider.Name, providerResult.Name);
@@ -84,7 +82,6 @@
             // arrange
             var provider = new Provider
             {
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -103,7 +100,6 @@
             Assert.Null(error);
             // here we check that what was returned is the same as we sent.
             Assert.NotNull(providerResult.Id);
-            Assert.Equal(provider.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(provider.City, providerResult.City);
             Assert.Equal(provider.State, providerResult.State);
             Assert.Equal(provider.Name, providerResult.Name);
@@ -116,7 +112,6 @@
                 _dataStore
                     .TestProvider(_ =>
                         _.Id == providerResult.Id &&
-                        _.Auth0Id == providerResult.Auth0Id &&
                         _.City == providerResult.City &&
                         _.Name == providerResult.Name &&
                         _.Email == providerResult.Email &&
@@ -134,7 +129,6 @@
             var providerUpdate = new Provider
             {
                 Id = id,
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "Mr. Plow",
@@ -148,7 +142,6 @@
                 new Provider
                 {
                     Id = id,
-                    Auth0Id = Guid.NewGuid().ToString("n"),
                     City = "Springfield",
                     State = "Illinois",
                     Name = "TowNow!",
@@ -167,7 +160,6 @@
             Assert.Null(error);
 
             Assert.Equal(providerUpdate.Id, providerResult.Id);
-            Assert.Equal(providerUpdate.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(providerUpdate.City, providerResult.City);
             Assert.Equal(providerUpdate.State, providerResult.State);
             Assert.Equal(providerUpdate.Name, providerResult.Name);
@@ -181,7 +173,6 @@
                 _dataStore
                     .TestProvider(_ =>
                         _.Id == providerResult.Id &&
-                        _.Auth0Id == providerResult.Auth0Id &&
                         _.City == providerResult.City &&
                         _.Name == providerResult.Name &&
                         _.Email == providerResult.Email &&
@@ -200,7 +191,6 @@
             var providerToUpdate = new Provider
             {
                 Id = id,
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",
@@ -229,7 +219,6 @@
             var providerUpdate = new Provider
             {
                 Id = id,
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "Mr. Plow",
@@ -243,7 +232,6 @@
                 new Provider
                 {
                     Id = id,
-                    Auth0Id = Guid.NewGuid().ToString("n"),
                     City = "Springfield",
                     State = "Illinois",
                     Name = "TowNow!",
@@ -262,7 +250,6 @@
             Assert.Null(error);
 
             Assert.Equal(providerUpdate.Id, providerResult.Id);
-            Assert.Equal(providerUpdate.Auth0Id, providerResult.Auth0Id);
             Assert.Equal(providerUpdate.City, providerResult.City);
             Assert.Equal(providerUpdate.State, providerResult.State);
             Assert.Equal(providerUpdate.Name, providerResult.Name);
@@ -276,7 +263,6 @@
                 _dataStore
                     .TestProvider(_ =>
                         _.Id == providerResult.Id &&
-                        _.Auth0Id == providerResult.Auth0Id &&
                         _.City == providerResult.City &&
                         _.Name == providerResult.Name &&
                         _.Email == providerResult.Email &&
@@ -295,7 +281,6 @@
             var providerToUpdate = new Provider
             {
                 Id = id,
-                Auth0Id = Guid.NewGuid().ToString("n"),
                 City = "Springfield",
                 State = "Illinois",
                 Name = "TowNow!",

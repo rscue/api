@@ -52,7 +52,6 @@
                             .Eq(_ => _.Id, provider.Id),
                         new UpdateDefinitionBuilder<Provider>()
                             .Set(_ => _.Address, provider.Address)
-                            .Set(_ => _.Auth0Id, provider.Auth0Id)
                             .Set(_ => _.City, provider.City)
                             .Set(_ => _.Email, provider.Email)
                             .Set(_ => _.Name, provider.Name)

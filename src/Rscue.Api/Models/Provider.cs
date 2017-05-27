@@ -13,10 +13,6 @@ namespace Rscue.Api.Models
 
         [Required]
         [BsonElement]
-        public string Auth0Id { get; set; }
-
-        [Required]
-        [BsonElement]
         public string Name { get; set; }
 
         [Required]
@@ -39,10 +35,6 @@ namespace Rscue.Api.Models
         [EmailAddress]
         [BsonElement]
         public string Email { get; set; }
-
-        [Required]
-        [BsonElement]
-        public Uri AvatarUri { get; set; }
 
         [BsonElement]
         public ImageBucketKey ProviderImageBucketKey { get; set; }

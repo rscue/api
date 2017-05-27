@@ -51,7 +51,6 @@
 
             var provider = new Provider
             {
-                Auth0Id = providerBindingModel.Auth0Id,
                 Email = providerBindingModel.Email,
                 Name = providerBindingModel.Name,
                 State = providerBindingModel.State,
@@ -78,7 +77,6 @@
             var providerPatch = new Provider
             {
                 Id = id,
-                Auth0Id = providerBindingModel.Auth0Id,
                 Email = providerBindingModel.Email,
                 Name = providerBindingModel.Name,
                 State = providerBindingModel.State,
@@ -116,7 +114,6 @@
                 ? new ProviderViewModel
                 {
                     Id = provider.Id,
-                    Auth0Id = provider.Auth0Id,
                     Email = provider.Email,
                     Name = provider.Name,
                     State = provider.State,

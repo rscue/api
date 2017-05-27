@@ -8,9 +8,6 @@
         public string Name { get; set; }
 
         [Required]
-        public string Auth0Id { get; set; }
-
-        [Required]
         public string Address { get; set; }
 
         [Required]
