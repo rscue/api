@@ -1,4 +1,4 @@
-﻿namespace Rscue.Api.Controllers
+﻿﻿namespace Rscue.Api.Controllers
 {
     using Extensions;
     using Microsoft.AspNetCore.Authorization;
@@ -65,6 +65,7 @@
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider), nameof(GetProvider), new { id = provider?.Id });
         }
 
+        [Route("{id}", Name="UpdateProvider")]
         [HttpPut]
         [ProducesResponseType(typeof(ProviderViewModel), 200)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
