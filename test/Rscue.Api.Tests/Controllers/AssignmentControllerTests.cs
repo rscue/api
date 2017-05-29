@@ -14,6 +14,8 @@
     using System.Threading.Tasks;
     using Xunit;
     using Rscue.Api.BindingModels;
+    using Moq;
+    using Microsoft.AspNetCore.Mvc.Routing;
 
     public class AssignmentControllerTests
     {
@@ -93,7 +95,7 @@
             var assignmentVM =
                             new NewAssignmentBindingModel
                             {
-                                InitialLocation = new GeoLocation {  Latitude = -34.605062, Longitude = -58.375979 },
+                                InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
@@ -110,11 +112,10 @@
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
 
             // assert
-            var actualNewAssignmentResult = actualResult as CreatedAtRouteResult;
-            Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type CreatedAtRouteResult");
+            var actualNewAssignmentResult = actualResult as CreatedResult;
+            Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type CreatedResult");
             Assert.Equal(201, actualNewAssignmentResult.StatusCode);
-            Assert.Equal("GetAssignment", actualNewAssignmentResult.RouteName);
-            Assert.NotNull(actualNewAssignmentResult.RouteValues["id"]);
+            Assert.Matches("^.*/assignment/.*$", actualNewAssignmentResult.Location);
         }
 
         [Fact]
@@ -298,7 +299,7 @@
             _testDataStore.EnsureClient(client);
             _testDataStore.EnsureProvider(provider);
             _testDataStore.EnsureWorker(worker);
-            
+
             // act
             var actualResult = await assignmentController.UpdateAssignment(nonExistantAssignmentId, updateAssignmentVM);
 
@@ -526,8 +527,21 @@
             _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
         }
 
-        private AssignmentController GetAssignmentController() =>
+        private AssignmentController GetAssignmentController()
+        {
+            var controller = 
             new AssignmentController(new AssignmentRepository(_mongoDatabase), new ImageBucketRepository(_mongoDatabase), new NotificationServicesMock());
+            var urlMock = new Mock<IUrlHelper>();
+            
+            urlMock.Setup(_ => _.RouteUrl(It.Is<UrlRouteContext>(ctx => ctx.RouteName == "GetAssignment")))
+                .Returns((UrlRouteContext _) => 
+                {
+                    dynamic values = _.Values.ToDictionary();
+                    return $"some-host/assignment/{values["id"]}";
+                });
+            controller.Url = urlMock.Object;
+            return controller;
+        }
 
     }
 }

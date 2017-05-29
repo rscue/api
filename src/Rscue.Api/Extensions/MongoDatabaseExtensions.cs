@@ -13,7 +13,7 @@
 
         public static IMongoCollection<Provider> Providers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Provider>("providers");
 
-        public static IMongoCollection<BoatTow> BoatTows(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<BoatTow>("boattows");
+        public static IMongoCollection<ProviderBoatTow> BoatTows(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<ProviderBoatTow>("boattows");
 
         public static IMongoCollection<ImageBucket> ImageBuckets(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<ImageBucket>("image-buckets");
     }

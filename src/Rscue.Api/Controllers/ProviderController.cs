@@ -62,10 +62,13 @@
 
             (provider, outcomeAction, error) = await _providerRepository.NewAsync(provider);
 
-            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider), nameof(GetProvider), new { id = provider?.Id });
+            return this.FromRepositoryOutcome(
+                outcomeAction, error,
+                MapToProviderViewModel(provider),
+                Url.BuildGetProviderUrl(provider?.Id));
         }
 
-        [Route("{id}", Name="UpdateProvider")]
+        [Route("{id}")]
         [HttpPut]
         [ProducesResponseType(typeof(ProviderViewModel), 200)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
@@ -92,7 +95,7 @@
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider));
         }
 
-        [Route("{id}", Name = "GetProvider")]
+        [Route("{id}", Name = Constants.Routes.GET_PROVIDER)]
         [HttpGet]
         [ProducesResponseType(typeof(ProviderViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
@@ -102,12 +105,7 @@
             var (provider, outcomeAction, error) = 
                 await _providerRepository.GetByIdAsync(id);
 
-            var providerResult =
-                outcomeAction == RepositoryOutcomeAction.OkNone
-                    ? MapToProviderViewModel(provider)
-                    : null;
-
-            return this.FromRepositoryOutcome(outcomeAction, error, providerResult);
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderViewModel(provider));
         }
 
         private ProviderViewModel MapToProviderViewModel(Provider provider) =>
@@ -121,7 +119,8 @@
                     City = provider.City,
                     ZipCode = provider.ZipCode,
                     Address = provider.Address,
-                    ProfilePictureUrl = ControllerFunctions.BuildGetProviderProfilePictureUrl(Url, provider?.ProviderImageBucketKey?.Store, provider?.ProviderImageBucketKey.Bucket)
+                    ProfilePictureUrl = Url.BuildGetProviderProfilePictureUrl(provider.ProviderImageBucketKey?.Store, provider.ProviderImageBucketKey.Bucket),
+                    ProviderBoatTowsUrl = Url.BuildGetProviderBoatTowsUrl(provider.Id)
                 }
                 : null;
     }

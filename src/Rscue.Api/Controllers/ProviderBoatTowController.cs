@@ -1,153 +1,115 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using Rscue.Api.Models;
-using Rscue.Api.Plumbing;
-using Rscue.Api.ViewModels;
-
-namespace Rscue.Api.Controllers
+﻿namespace Rscue.Api.Controllers
 {
+    using Extensions;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Rscue.Api.BindingModels;
+    using Rscue.Api.Models;
+    using Rscue.Api.Plumbing;
+    using Rscue.Api.Services;
+    using Rscue.Api.ViewModels;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+
     [Authorize]
     [Route("provider/{providerId}/boattow")]
     public class ProviderBoatTowController : Controller
     {
-        private readonly IMongoCollection<BoatTow> _collection;
-        private readonly IMongoCollection<Provider> _providerCollection;
+        private readonly IProviderBoatTowRepository _providerBoatTowRepository;
 
-        public ProviderBoatTowController(IMongoDatabase mongoDatabase)
+        public ProviderBoatTowController(ProviderBoatTowRepository providerBoatTowRepository)
         {
-            _collection = mongoDatabase.GetCollection<BoatTow>("boattows");
-            _providerCollection = mongoDatabase.GetCollection<Provider>("providers");
+            _providerBoatTowRepository = providerBoatTowRepository ?? throw new ArgumentNullException(nameof(providerBoatTowRepository));
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(BoatTowViewModel), 201)]
+        [ProducesResponseType(typeof(ProviderBoatTowViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddBoatTow(string providerId, [FromBody] BoatTowViewModel boatTow)
+        public async Task<IActionResult> NewProviderBoatTow(string providerId, [FromBody] ProviderBoatTowBindingModel providerBoatTowBindingModel)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var providerBoatTow = new ProviderBoatTow
             {
-                var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
+                BoatModel = providerBoatTowBindingModel.BoatModel,
+                EngineType = providerBoatTowBindingModel.EngineType,
+                Name = providerBoatTowBindingModel.Name,
+                RegistrationNumber = providerBoatTowBindingModel.RegistrationNumber,
+                FuelCostPerKm = providerBoatTowBindingModel.FuelCostPerKm
+            };
 
-                if (provider == null)
-                {
-                    return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
-                }
+            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.NewAsync(providerId, providerBoatTow);
 
-                var model = new BoatTow
-                {
-                    BoatModel = boatTow.BoatModel,
-                    EngineType = boatTow.EngineType,
-                    Name = boatTow.Name,
-                    RegistrationNumber = boatTow.RegistrationNumber,
-                    ProviderId = provider.Id
-                };
-
-                await _collection.InsertOneAsync(model);
-                var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id.ToString()}");
-                boatTow.Id = model.Id.ToString();
-                return await Task.FromResult(Created(uri, boatTow));
-            }
-
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderBoatTowViewModel(providerBoatTowResult), Url.BuildGetProviderBoatTowUrl(providerId, providerBoatTowResult.Id));
         }
 
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(void), 200)]
+        [ProducesResponseType(typeof(ProviderBoatTowViewModel), 200)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateBoatTow(string providerId, string id, [FromBody] BoatTowViewModel boatTow)
+        public async Task<IActionResult> UpdateProviderBoatTow(string providerId, string id, [FromBody] ProviderBoatTowBindingModel boatTow)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var providerBoatTow = new ProviderBoatTow
             {
-                var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
-
-                if (provider == null)
-                {
-                    return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
-                }
-
-                var objId = ObjectId.Parse(id);
-                var exists = await _collection.Find(x => x.Id == objId).SingleOrDefaultAsync();
-
-                if (exists == null)
-                {
-                    return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
-                }
-
-                var model = new BoatTow
-                {
-                    BoatModel = boatTow.BoatModel,
-                    EngineType = boatTow.EngineType,
-                    Name = boatTow.Name,
-                    RegistrationNumber = boatTow.RegistrationNumber,
-                    Id = exists.Id,
-                    ProviderId = provider.Id
-                };
-
-                await _collection.ReplaceOneAsync(x => x.Id == objId, model);
-                return await Task.FromResult(Ok());
-            }
-
-            return await Task.FromResult(BadRequest(ModelState.GetErrors()));
-        }
-
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BoatTowViewModel), 200)]
-        [ProducesResponseType(typeof(string), 404)]
-        [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetBoatTow(string providerId, string id)
-        {
-            var objId = ObjectId.Parse(id);
-            var boatTow = await _collection.Find(x => x.Id == objId && x.ProviderId == providerId).SingleOrDefaultAsync();
-
-            if (boatTow == null)
-            {
-                return await Task.FromResult(NotFound($"No existe una float con el id {id}"));
-            }
-
-            var model = new BoatTowViewModel
-            {
-                Id = boatTow.Id.ToString(),
+                Id = id,
+                BoatModel = boatTow.BoatModel,
+                EngineType = boatTow.EngineType,
                 Name = boatTow.Name,
                 RegistrationNumber = boatTow.RegistrationNumber,
-                BoatModel = boatTow.BoatModel,
-                EngineType = boatTow.EngineType
+                FuelCostPerKm = boatTow.FuelCostPerKm
             };
 
-            return await Task.FromResult(Ok(model));
+            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderBoatTowViewModel(providerBoatTowResult));
         }
 
-        [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<BoatTowViewModel>), 200)]
+        [HttpGet("{id}", Name = Constants.Routes.GET_PROVIDER_BOATTOW)]
+        [ProducesResponseType(typeof(ProviderBoatTowViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetBoatTows(string providerId)
+        public async Task<IActionResult> GetProviderBoatTow(string providerId, string id)
         {
-            var models = _collection.AsQueryable().Where(x => x.ProviderId == providerId).ToList().Select(x => new BoatTowViewModel
-            {
-                Id = x.Id.ToString(),
-                Name = x.Name,
-                RegistrationNumber = x.RegistrationNumber,
-                EngineType = x.EngineType,
-                BoatModel = x.BoatModel
-            });
+            var (providerBoatTowResult, outcomeAction, error) = 
+                await _providerBoatTowRepository.GetByIdAsync(providerId, id);
 
-            if (!models.Any())
-            {
-                return await Task.FromResult(NotFound("No hay resultados"));
-            }
-
-            return await Task.FromResult(Ok(models));
+            return this.FromRepositoryOutcome(outcomeAction, error, providerBoatTowResult);
         }
+
+        [HttpGet(Name = Constants.Routes.GET_PROVIDER_BOATTOWS)]
+        [ProducesResponseType(typeof(IEnumerable<ProviderBoatTowViewModel>), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
+        public async Task<IActionResult> GetProviderBoatTows(string providerId)
+        {
+            var (providerBoatTowResults, outcomeAction, error) =
+                await _providerBoatTowRepository.GetAllAsync(providerId);
+
+            var results = providerBoatTowResults != null 
+                ? providerBoatTowResults.Select(MapToProviderBoatTowViewModel) 
+                : null;
+
+            return this.FromRepositoryOutcome(outcomeAction, error, results);
+        }
+
+        private static ProviderBoatTowViewModel MapToProviderBoatTowViewModel(ProviderBoatTow providerBoatTow) =>
+            providerBoatTow != null
+                ? new ProviderBoatTowViewModel
+                {
+                    Id = providerBoatTow.Id,
+                    RegistrationNumber = providerBoatTow.RegistrationNumber,
+                    Name = providerBoatTow.Name,
+                    BoatModel = providerBoatTow.BoatModel,
+                    EngineType = providerBoatTow.EngineType,
+                    FuelCostPerKm = providerBoatTow.FuelCostPerKm
+                }
+                : null;
     }
 }

@@ -28,5 +28,7 @@ namespace Rscue.Api.ViewModels
         public string Email { get; set; }
 
         public string ProfilePictureUrl { get; set; }
+
+        public string ProviderBoatTowsUrl { get; set; }
     }
 }

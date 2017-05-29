@@ -72,7 +72,7 @@
                 await _notificationServices.NotifyAssignmentWorkerAsync(assignment);
             }
 
-            return this.FromRepositoryOutcome(outcomeAction, error, MapToAssignmentResponseViewModel(assignment), nameof(GetAssignment), new { id = assignment?.Id });
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToAssignmentResponseViewModel(assignment), Url.BuildGetAssignmentUrl(assignment?.Id));
         }
 
         [HttpPut]
@@ -132,7 +132,7 @@
         }
 
         [HttpGet]
-        [Route("{id}", Name = "GetAssignment")]
+        [Route("{id}", Name = Constants.Routes.GET_ASSIGNMENT)]
         [ProducesResponseType(typeof(AssignmentViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
@@ -167,7 +167,7 @@
                     ClientId = assignment.ClientId,
                     ProviderId = assignment.ProviderId,
                     Comments = assignment.Comments,
-                    ImagesUrl = ControllerFunctions.BuildGetImagesUrl(Url, assignment.ImageBucketKey?.Store, assignment.ImageBucketKey?.Bucket),
+                    ImagesUrl = Url.BuildGetImagesUrl(assignment.ImageBucketKey?.Store, assignment.ImageBucketKey?.Bucket),
                     WorkerId = assignment.WorkerId,
                     BoatTowId = assignment.BoatTowId,
                     UpdateDateTime = assignment.UpdateDateTime,

@@ -60,6 +60,16 @@
             _mongoDatabase.Providers().InsertOne(provider);
         }
 
+        public void EnsureProviderBoatTow(ProviderBoatTow providerBoatTow)
+        {
+            _mongoDatabase.BoatTows().InsertOne(providerBoatTow);
+        }
+
+        public void EnsureProviderBoatTowDoesNotExist(string providerId, string id)
+        {
+            _mongoDatabase.BoatTows().DeleteOne(_ => _.Id == id && _.ProviderId == id);
+        }
+
         public void EnsureProviderDoesNotExist(string providerId)
         {
             _mongoDatabase.Providers().DeleteOne(_ => _.Id == providerId);
@@ -83,6 +93,11 @@
         public bool TestProvider(Expression<Func<Provider, bool>> filter)
         {
             return _mongoDatabase.Providers().Find(filter).SingleOrDefault() != null;
+        }
+
+        public bool TestProviderBoatTow(Expression<Func<ProviderBoatTow, bool>> filter)
+        {
+            return _mongoDatabase.BoatTows().Find(filter).SingleOrDefault() != null;
         }
     }
 }

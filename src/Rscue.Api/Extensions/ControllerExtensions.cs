@@ -6,14 +6,14 @@
 
     public static class ControllerExtensions
     {
-        public static IActionResult FromRepositoryOutcome(this Controller controller, RepositoryOutcomeAction outcomeAction, object error, object value = null, string routeName = null, object routeValues = null)
+        public static IActionResult FromRepositoryOutcome(this Controller controller, RepositoryOutcomeAction outcomeAction, object error, object value = null, string location = null)
         {
             switch (outcomeAction.Outcome)
             {
                 case RepositoryOutcome.Ok:
                     if (outcomeAction.Action == RepositoryAction.Created)
                     {
-                        return controller.CreatedAtRoute(routeName, routeValues, value);
+                        return new CreatedResult(location, value);
                     }
 
                     return controller.Ok(value);

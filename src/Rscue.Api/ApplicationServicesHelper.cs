@@ -18,6 +18,7 @@
             services.AddTransient<INotificationServices, NotificationServices>();
             services.AddTransient<IAssignmentRepository, AssignmentRepository>();
             services.AddTransient<IProviderRepository, ProviderRepository>();
+            services.AddTransient<IProviderBoatTowRepository, ProviderBoatTowRepository>();
             services.AddTransient<IUserIdProvider, HubUserIdProvider>();
         }
     }

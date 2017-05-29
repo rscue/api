@@ -45,7 +45,7 @@
                     : this.NotFound();
         }
 
-        [HttpGet("{store:required}/{bucket:required}/{name:required}", Name = "GetImage")]
+        [HttpGet("{store:required}/{bucket:required}/{name:required}", Name = Constants.Routes.GET_IMAGE)]
         [ProducesResponseType(typeof(byte[]), 200)]
         [ProducesResponseType(typeof(void), 404)]
         [ProducesResponseType(typeof(void), 500)]
@@ -56,7 +56,7 @@
                 async _ =>  await _imageStore.DownloadImageAsync(store, bucket, name, _, cancellationToken));
         }
 
-        [HttpGet("{store:required}/{bucket:required}", Name = "GetImages")]
+        [HttpGet("{store:required}/{bucket:required}", Name = Constants.Routes.GET_IMAGES)]
         [ProducesResponseType(typeof(byte[]), 200)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetImages(string store, string bucket, CancellationToken cancellationToken = default(CancellationToken))
@@ -65,7 +65,7 @@
             var imageList = imageBucket?.ImageList ?? new List<string>();
             if (outcomeAction == RepositoryOutcomeAction.OkNone)
             {
-                imageList = imageList.Select(_ => this.Url.RouteUrl("GetImage", new { store, bucket, name = _ })).ToList();
+                imageList = imageList.Select(_ => this.Url.BuildGetImageUrl(store, bucket, _)).ToList();
             }
 
             return this.FromRepositoryOutcome(outcomeAction, error, imageList);
@@ -92,7 +92,7 @@
                 return this.StatusCode(500, error);
             }
 
-            return this.CreatedAtRoute("GetImage", new { store, bucket, name }, null);
+            return this.Created(Url.BuildGetImageUrl(store, bucket, name), null);
         }
 
 
@@ -147,8 +147,8 @@
             if (outcome != RepositoryOutcomeAction.OkUpdated)
             {
                 return this.StatusCode(500, error);
-
             }
+
             await _imageStore.DeleteImageAsync(store, bucket, name, CancellationToken.None);
             return this.NoContent();
         }

@@ -63,6 +63,6 @@ namespace Rscue.Api.Models
         public Provider Provider { get; set; }
 
         [BsonIgnore]
-        public BoatTow BoatTow { get; set; }
+        public ProviderBoatTow BoatTow { get; set; }
     }
 }
