@@ -8,6 +8,7 @@ namespace Rscue.Api.Models
     public enum NotificationOutcome
     {
         Sent,
+        NotSent,
         Failed
     }
 }
