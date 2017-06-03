@@ -3,8 +3,6 @@
     using Rscue.Api.Models;
     using Rscue.Api.Services;
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using System.Threading.Tasks;
     using Xunit;
 
@@ -192,6 +190,135 @@
                         _.RegistrationNumber == providerBoatTow.RegistrationNumber &&
                         _.BoatModel == providerBoatTow.BoatModel &&
                         _.EngineType == providerBoatTow.EngineType));
+        }
+
+        [Fact]
+        public async Task TestUpdateAsyncUpdatesProviderBoatTow()
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = Guid.NewGuid().ToString("n");
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerBoatTow = new ProviderBoatTow
+            {
+                Id = id,
+                ProviderId = providerId,
+                FuelCostPerKm = 13,
+                RegistrationNumber = "1234ASD"
+            };
+
+            var updatedProviderBoatTow = new ProviderBoatTow
+            {
+                Id = id,
+                ProviderId = providerId,
+                FuelCostPerKm = 13,
+                RegistrationNumber = "1234ASDF"
+            };
+
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderBoatTow(providerBoatTow);
+
+            // act 
+            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, updatedProviderBoatTow);
+
+            // assert
+            Assert.NotNull(providerBoatTowResult);
+            Assert.Equal(RepositoryOutcomeAction.OkUpdated, outcomeAction);
+            Assert.Null(error);
+
+            Assert.Equal(updatedProviderBoatTow.Id, providerBoatTowResult.Id);
+            Assert.Equal(updatedProviderBoatTow.ProviderId, providerBoatTowResult.ProviderId);
+            Assert.Equal(updatedProviderBoatTow.FuelCostPerKm, providerBoatTowResult.FuelCostPerKm);
+            Assert.Equal(updatedProviderBoatTow.Name, providerBoatTowResult.Name);
+            Assert.Equal(updatedProviderBoatTow.RegistrationNumber, providerBoatTowResult.RegistrationNumber);
+            Assert.Equal(updatedProviderBoatTow.BoatModel, providerBoatTowResult.BoatModel);
+            Assert.Equal(updatedProviderBoatTow.EngineType, providerBoatTowResult.EngineType);
+
+            Assert.True(
+                _dataStore
+                    .TestProviderBoatTow(_ =>
+                        _.Id == updatedProviderBoatTow.Id &&
+                        _.ProviderId == updatedProviderBoatTow.ProviderId &&
+                        _.FuelCostPerKm == updatedProviderBoatTow.FuelCostPerKm &&
+                        _.Name == updatedProviderBoatTow.Name &&
+                        _.RegistrationNumber == updatedProviderBoatTow.RegistrationNumber &&
+                        _.BoatModel == updatedProviderBoatTow.BoatModel &&
+                        _.EngineType == updatedProviderBoatTow.EngineType));
+        }
+
+        [Fact]
+        public async Task TestUpdateAsyncFailsToCreateProviderBoatTowWhenProviderDoesNotExist()
+        {
+            // arrange
+            var providerId = "0000ffff0000ffff0000ffff0000ffff";
+            var id = Guid.NewGuid().ToString("n");
+
+            var providerBoatTow = new ProviderBoatTow
+            {
+                Id = id,
+                ProviderId = providerId,
+                FuelCostPerKm = 13,
+                RegistrationNumber = "1234ASD"
+            };
+
+            _dataStore.EnsureProviderDoesNotExist(providerId);
+
+            // act 
+            var (updateProvider, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+
+            // assert
+            Assert.Null(updateProvider);
+            Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
+            Assert.NotNull(error);
+        }
+
+        [Fact]
+        public async Task TestUpdateAsyncReturnsNullOnNonExistantProvider()
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = "0000ffff0000ffff0000ffff0000ffff";
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerBoatTow = new ProviderBoatTow
+            {
+                Id = id,
+                ProviderId = providerId,
+                FuelCostPerKm = 13,
+                RegistrationNumber = "1234ASD"
+            };
+
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
+
+            // act 
+            var (updateProvider, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+
+            // assert
+            Assert.Null(updateProvider);
+            Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
+            Assert.Null(error);
         }
     }
 }

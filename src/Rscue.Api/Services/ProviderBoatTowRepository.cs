@@ -63,15 +63,22 @@
         {
             if (providerId == null) throw new ArgumentNullException(nameof(providerId));
             if (boatTow == null) throw new ArgumentNullException(nameof(boatTow));
+
+            var providerExists = await (await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
+            if (!providerExists)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
+            }
+
             var result = await _mongoDatabase
                 .BoatTows()
                 .ReplaceOneAsync(_ => _.Id == boatTow.Id, boatTow, cancellationToken: cancellationToken);
-            var outcomeAction =
-                result.MatchedCount == 1 && result.MatchedCount == result.ModifiedCount
-                    ? RepositoryOutcomeAction.OkUpdated
-                    : RepositoryOutcomeAction.NotFoundNone;
 
-            return (boatTow, outcomeAction, null);
+            return
+                result.MatchedCount == 1 && result.MatchedCount == result.ModifiedCount
+                    ? (boatTow, RepositoryOutcomeAction.OkUpdated, null)
+                    : ((ProviderBoatTow)null, RepositoryOutcomeAction.NotFoundNone, (object)null);
+            //return (boatTow, outcomeAction, null);
         }
     }
 }
