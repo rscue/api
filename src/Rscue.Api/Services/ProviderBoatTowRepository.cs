@@ -35,7 +35,8 @@
                             await _mongoDatabase.BoatTows()
                                                 .FindAsync(_ => _.ProviderId == providerId && _.Id == id, cancellationToken: cancellationToken)
                             ).SingleOrDefaultAsync(cancellationToken);
-            return (result, RepositoryOutcomeAction.OkNone, null);
+            var outcomeAction = result != null ? RepositoryOutcomeAction.OkNone : RepositoryOutcomeAction.NotFoundNone;
+            return (result, outcomeAction, null);
         }
 
         public async Task<(ProviderBoatTow boatTow, RepositoryOutcomeAction outcomeAction, object error)> NewAsync(string providerId, ProviderBoatTow boatTow, CancellationToken cancellationToken = default(CancellationToken))
