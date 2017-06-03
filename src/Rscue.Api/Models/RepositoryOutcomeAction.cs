@@ -36,5 +36,7 @@
         public static bool operator ==(RepositoryOutcomeAction lhs, RepositoryOutcomeAction rhs) => lhs.Equals(rhs);
 
         public static bool operator !=(RepositoryOutcomeAction lhs, RepositoryOutcomeAction rhs) => !(lhs == rhs);
+
+        public override string ToString() => this._outcome.ToString() + this._action.ToString();
     }
 }
