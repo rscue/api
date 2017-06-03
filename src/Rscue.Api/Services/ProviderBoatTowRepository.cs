@@ -43,8 +43,16 @@
         {
             if (providerId == null) throw new ArgumentNullException(nameof(providerId));
             if (boatTow == null) throw new ArgumentNullException(nameof(boatTow));
+
+            var providerExists = await (await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
+            if (!providerExists)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
+            }
+
             boatTow.Id = Guid.NewGuid().ToString("n");
             boatTow.ProviderId = providerId;
+
             await _mongoDatabase
                 .BoatTows()
                 .InsertOneAsync(boatTow, cancellationToken: cancellationToken);
