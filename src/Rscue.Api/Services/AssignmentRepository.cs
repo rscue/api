@@ -77,6 +77,8 @@
                 return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
             }
 
+            assignment.Id = Guid.NewGuid().ToString("n");
+
             await _mongoDatabase.Assignments()
                                 .InsertOneAsync(assignment, null, cancellationToken);
 

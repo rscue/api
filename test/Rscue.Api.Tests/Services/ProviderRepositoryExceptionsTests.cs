@@ -8,11 +8,11 @@
     using Xunit;
 
     [Collection("ProviderRepository")]
-    public class ProviderRepositoryExceptionssTests
+    public class ProviderRepositoryExceptionsTests
     {
         private readonly IMongoDatabase _mongoDatabase;
 
-        public ProviderRepositoryExceptionssTests()
+        public ProviderRepositoryExceptionsTests()
         {
             _mongoDatabase = new Mock<IMongoDatabase>().Object;
         }

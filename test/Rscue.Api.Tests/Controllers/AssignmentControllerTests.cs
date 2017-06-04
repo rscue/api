@@ -40,6 +40,7 @@
             var assignment =
                             new Assignment
                             {
+                                Id = Guid.NewGuid().ToString("n"),
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
@@ -58,7 +59,7 @@
 
             // assert
             var actualAssignmentResult = actualResult as OkObjectResult;
-            var actualAssignment = actualAssignmentResult.Value as Assignment;
+            var actualAssignment = actualAssignmentResult.Value as AssignmentViewModel;
             Assert.True(actualAssignmentResult != null, "actualAssignmentResult should be of type OkObjectResult");
             Assert.True(actualAssignment != null, "actualAssignment should be of Type Assignment");
             Assert.Equal(200, actualAssignmentResult.StatusCode);
@@ -235,6 +236,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -322,6 +324,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -372,6 +375,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -422,6 +426,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -515,16 +520,16 @@
             _testDataStore.EnsureNoAssignments();
             _testDataStore.EnsureClient(new Client { Id = client1Id });
             _testDataStore.EnsureClient(new Client { Id = client2Id });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 0, 0)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 1, 12)), Status = AssignmentStatus.Completed });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 31, 18)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 33, 6)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 45, 0)), Status = AssignmentStatus.Assigned });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 9, 45)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 17, 0, 0)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 1, 12)), Status = AssignmentStatus.Completed });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 31, 18)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 33, 6)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 45, 0)), Status = AssignmentStatus.Assigned });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 9, 45)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 17, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
         }
 
         private AssignmentController GetAssignmentController()
@@ -533,11 +538,12 @@
             new AssignmentController(new AssignmentRepository(_mongoDatabase), new ImageBucketRepository(_mongoDatabase), new NotificationServicesMock());
             var urlMock = new Mock<IUrlHelper>();
             
-            urlMock.Setup(_ => _.RouteUrl(It.Is<UrlRouteContext>(ctx => ctx.RouteName == "GetAssignment")))
-                .Returns((UrlRouteContext _) => 
+            urlMock.Setup(_ =>
+            _.Link(It.Is<string>(routeName => routeName == "GetAssignment"), It.Is<object>(values => true)))
+                .Returns((string routeName, object values) => 
                 {
-                    dynamic values = _.Values.ToDictionary();
-                    return $"some-host/assignment/{values["id"]}";
+                    var valuesDic = values.ToDictionary();
+                    return $"some-host/assignment/{valuesDic["id"]}";
                 });
             controller.Url = urlMock.Object;
             return controller;

@@ -148,7 +148,7 @@
                     ? MapToAssignmentResponseViewModel(assignment)
                     : null;
 
-            return this.FromRepositoryOutcome(outcome, message, assignment);
+            return this.FromRepositoryOutcome(outcome, message, assignmentResult);
         }
 
         private AssignmentViewModel MapToAssignmentResponseViewModel(Assignment assignment) =>

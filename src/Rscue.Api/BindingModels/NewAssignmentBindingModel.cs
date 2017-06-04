@@ -15,7 +15,6 @@
         [Required]
         public DateTimeOffset CreationDateTime { get; set; }
 
-        [Required]
         public GeoLocation InitialLocation { get; set; }
 
         [Required]

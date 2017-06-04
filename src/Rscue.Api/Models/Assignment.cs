@@ -9,7 +9,7 @@ namespace Rscue.Api.Models
     public class Assignment
     {
         [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
+        [BsonElement]
         public string Id { get; set; }
 
         [BsonElement]

@@ -70,6 +70,8 @@
                 return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
             }
 
+            boatTow.ProviderId = providerId;
+
             var result = await _mongoDatabase
                 .BoatTows()
                 .ReplaceOneAsync(_ => _.Id == boatTow.Id, boatTow, cancellationToken: cancellationToken);
@@ -78,7 +80,6 @@
                 result.MatchedCount == 1 && result.MatchedCount == result.ModifiedCount
                     ? (boatTow, RepositoryOutcomeAction.OkUpdated, null)
                     : ((ProviderBoatTow)null, RepositoryOutcomeAction.NotFoundNone, (object)null);
-            //return (boatTow, outcomeAction, null);
         }
     }
 }
