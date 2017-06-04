@@ -1,24 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Rscue.Api
+﻿namespace Rscue.Api
 {
+    using Microsoft.AspNetCore.Mvc;
+    using System;
+    using System.IO;
+    using System.Threading.Tasks;
+
     public class StreamResult : IActionResult
     {
-        private Func<Stream, Task> _streamWriter;
-        public StreamResult(Func<Stream, Task> streamWriter)
+        private readonly Func<Task<string>> _contentTypeRetriver;
+        private readonly Func<Stream, Task> _contentWriter;
+
+        public StreamResult(Func<Task<string>> contentTypeRetriver, Func<Stream, Task> contentWriter)
         {
-            _streamWriter = streamWriter;
+            _contentTypeRetriver = contentTypeRetriver ?? throw new ArgumentNullException(nameof(contentTypeRetriver));
+            _contentWriter = contentWriter ?? throw new ArgumentNullException(nameof(contentWriter));
         }
 
         public async Task ExecuteResultAsync(ActionContext context)
         {
-            await _streamWriter(context.HttpContext.Response.Body);
+            context.HttpContext.Response.ContentType = await _contentTypeRetriver();
+            await _contentWriter(context.HttpContext.Response.Body);
         }
     }
 }

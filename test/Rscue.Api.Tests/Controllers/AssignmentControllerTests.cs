@@ -13,6 +13,9 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Xunit;
+    using Rscue.Api.BindingModels;
+    using Moq;
+    using Microsoft.AspNetCore.Mvc.Routing;
 
     public class AssignmentControllerTests
     {
@@ -37,10 +40,12 @@
             var assignment =
                             new Assignment
                             {
+                                Id = Guid.NewGuid().ToString("n"),
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
                                 Status = AssignmentStatus.Created,
+                                StatusReason = AssignmentStatusReason.New,
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
@@ -54,7 +59,7 @@
 
             // assert
             var actualAssignmentResult = actualResult as OkObjectResult;
-            var actualAssignment = actualAssignmentResult.Value as Assignment;
+            var actualAssignment = actualAssignmentResult.Value as AssignmentViewModel;
             Assert.True(actualAssignmentResult != null, "actualAssignmentResult should be of type OkObjectResult");
             Assert.True(actualAssignment != null, "actualAssignment should be of Type Assignment");
             Assert.Equal(200, actualAssignmentResult.StatusCode);
@@ -89,10 +94,9 @@
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
             var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
-                            new AssignmentViewModel
+                            new NewAssignmentBindingModel
                             {
-                                InitialLocationLatitude = -34.605062,
-                                InitialLocationLongitude = -58.375979,
+                                InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
@@ -109,11 +113,10 @@
             var actualResult = await assignmentController.NewAssignment(assignmentVM);
 
             // assert
-            var actualNewAssignmentResult = actualResult as CreatedAtRouteResult;
-            Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type CreatedAtRouteResult");
+            var actualNewAssignmentResult = actualResult as CreatedResult;
+            Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type CreatedResult");
             Assert.Equal(201, actualNewAssignmentResult.StatusCode);
-            Assert.Equal("GetAssignment", actualNewAssignmentResult.RouteName);
-            Assert.NotNull(actualNewAssignmentResult.RouteValues["id"]);
+            Assert.Matches("^.*/assignment/.*$", actualNewAssignmentResult.Location);
         }
 
         [Fact]
@@ -126,10 +129,9 @@
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
-                            new AssignmentViewModel
+                            new NewAssignmentBindingModel
                             {
-                                InitialLocationLatitude = -34.605062,
-                                InitialLocationLongitude = -58.375979,
+                                InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                                 ClientId = client.Id,
                                 WorkerId = worker.Id,
                                 ProviderId = nonExistantProviderId,
@@ -149,7 +151,7 @@
             var actualNewAssignmentResult = actualResult as BadRequestObjectResult;
             Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type BadRequestObjectResult");
             Assert.Equal(400, actualNewAssignmentResult.StatusCode);
-            Assert.Equal($"El proveedor con id '{nonExistantProviderId}' no existe", actualNewAssignmentResult.Value);
+            Assert.NotNull(actualNewAssignmentResult.Value);
         }
 
         [Fact]
@@ -162,10 +164,9 @@
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
             var assignmentVM =
-                            new AssignmentViewModel
+                            new NewAssignmentBindingModel
                             {
-                                InitialLocationLatitude = -34.605062,
-                                InitialLocationLongitude = -58.375979,
+                                InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                                 ClientId = client.Id,
                                 WorkerId = nonExistantWorkerId,
                                 ProviderId = provider.Id,
@@ -185,7 +186,7 @@
             var actualNewAssignmentResult = actualResult as BadRequestObjectResult;
             Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type BadRequestObjectResult");
             Assert.Equal(400, actualNewAssignmentResult.StatusCode);
-            Assert.Equal($"El trabajador con id '{nonExistantWorkerId}' no existe", actualNewAssignmentResult.Value);
+            Assert.NotNull(actualNewAssignmentResult.Value);
         }
 
         [Fact]
@@ -198,14 +199,14 @@
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
             var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
-                            new AssignmentViewModel
+                            new NewAssignmentBindingModel
                             {
-                                InitialLocationLatitude = -34.605062,
-                                InitialLocationLongitude = -58.375979,
+                                InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                                 ClientId = nonExistantClientId,
                                 WorkerId = worker.Id,
                                 ProviderId = provider.Id,
                                 Status = AssignmentStatus.Created,
+                                StatusReason = AssignmentStatusReason.New,
                                 CreationDateTime = DateTimeOffset.Now
                             };
 
@@ -220,7 +221,7 @@
             var actualNewAssignmentResult = actualResult as BadRequestObjectResult;
             Assert.True(actualNewAssignmentResult != null, "actualNewAssignmentResult should be of type BadRequestObjectResult");
             Assert.Equal(400, actualNewAssignmentResult.StatusCode);
-            Assert.Equal($"El cliente con el id '{nonExistantClientId}' no existe", actualNewAssignmentResult.Value);
+            Assert.NotNull(actualNewAssignmentResult.Value);
         }
 
         [Fact]
@@ -235,6 +236,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -245,13 +247,12 @@
                 };
 
             var updateAssignmentVM =
-                new AssignmentViewModel
+                new UpdateAssignmentBindingModel
                 {
                     Status = AssignmentStatus.InProgress,
-                    CreationDateTime = assignment.CreationDateTime,
+                    StatusReason = AssignmentStatusReason.WorkerEnRoute,
                     UpdateDateTime = DateTimeOffset.Now,
-                    InitialLocationLongitude = -58.375979,
-                    InitialLocationLatitude = -34.605062,
+                    InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -285,13 +286,12 @@
             var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
 
             var updateAssignmentVM =
-                new AssignmentViewModel
+                new UpdateAssignmentBindingModel
                 {
                     Status = AssignmentStatus.InProgress,
-                    CreationDateTime = now.AddMinutes(-15.0d),
+                    StatusReason = AssignmentStatusReason.WorkerEnRoute,
                     UpdateDateTime = now,
-                    InitialLocationLongitude = -58.375979,
-                    InitialLocationLatitude = -34.605062,
+                    InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -301,7 +301,7 @@
             _testDataStore.EnsureClient(client);
             _testDataStore.EnsureProvider(provider);
             _testDataStore.EnsureWorker(worker);
-            
+
             // act
             var actualResult = await assignmentController.UpdateAssignment(nonExistantAssignmentId, updateAssignmentVM);
 
@@ -324,6 +324,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -334,13 +335,12 @@
                 };
 
             var updateAssignmentVM =
-                new AssignmentViewModel
+                new UpdateAssignmentBindingModel
                 {
                     Status = AssignmentStatus.InProgress,
-                    CreationDateTime = assignment.CreationDateTime,
+                    StatusReason = AssignmentStatusReason.WorkerEnRoute,
                     UpdateDateTime = DateTimeOffset.Now,
-                    InitialLocationLongitude = -58.375979,
-                    InitialLocationLatitude = -34.605062,
+                    InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                     ClientId = client.Id,
                     WorkerId = worker.Id,
                     ProviderId = nonExistantProviderId
@@ -375,7 +375,9 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
+                    StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
                     InitialLocation = new GeoJson2DGeographicCoordinates(-58.375979, -34.605062),
                     ClientId = client.Id,
@@ -384,13 +386,12 @@
                 };
 
             var updateAssignmentVM =
-                new AssignmentViewModel
+                new UpdateAssignmentBindingModel
                 {
                     Status = AssignmentStatus.InProgress,
-                    CreationDateTime = assignment.CreationDateTime,
+                    StatusReason = AssignmentStatusReason.WorkerEnRoute,
                     UpdateDateTime = DateTimeOffset.Now,
-                    InitialLocationLongitude = -58.375979,
-                    InitialLocationLatitude = -34.605062,
+                    InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                     ClientId = client.Id,
                     WorkerId = nonExistantWorkerId,
                     ProviderId = provider.Id
@@ -425,6 +426,7 @@
             var assignment =
                 new Assignment
                 {
+                    Id = Guid.NewGuid().ToString("n"),
                     Status = AssignmentStatus.Created,
                     StatusReason = AssignmentStatusReason.New,
                     CreationDateTime = DateTimeOffset.Now,
@@ -435,13 +437,12 @@
                 };
 
             var updateAssignmentVM =
-                new AssignmentViewModel
+                new UpdateAssignmentBindingModel
                 {
                     Status = AssignmentStatus.InProgress,
-                    CreationDateTime = assignment.CreationDateTime,
+                    StatusReason = AssignmentStatusReason.WorkerEnRoute,
                     UpdateDateTime = DateTimeOffset.Now,
-                    InitialLocationLongitude = -58.375979,
-                    InitialLocationLatitude = -34.605062,
+                    InitialLocation = new GeoLocation { Latitude = -34.605062, Longitude = -58.375979 },
                     ClientId = nonExistantClientId,
                     WorkerId = worker.Id,
                     ProviderId = provider.Id
@@ -469,7 +470,7 @@
             // arrange
             var assignmentController = GetAssignmentController();
             PopulateDataSet1();
-            var searchQuery = new AssignmentSearchViewModel
+            var searchQuery = new SearchAssignmentBindingModel
             {
                 Statuses = new List<AssignmentStatus> { AssignmentStatus.InProgress },
                 StartDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)),
@@ -484,7 +485,7 @@
             Assert.True(actualUpdateAssignmentResult != null, "actualUpdateAssignmentResult should be of type OkObjectResult");
             Assert.Equal(200, actualUpdateAssignmentResult.StatusCode);
             Assert.NotNull(actualUpdateAssignmentResult.Value);
-            Assert.Equal(2, ((IEnumerable<AssignmentResponseViewModel>)actualUpdateAssignmentResult.Value).Count());
+            Assert.Equal(2, ((IEnumerable<AssignmentViewModel>)actualUpdateAssignmentResult.Value).Count());
         }
 
         [Fact]
@@ -493,7 +494,7 @@
             // arrange
             var assignmentController = GetAssignmentController();
             PopulateDataSet1();
-            var searchQuery = new AssignmentSearchViewModel
+            var searchQuery = new SearchAssignmentBindingModel
             {
                 Statuses = new List<AssignmentStatus> { AssignmentStatus.InProgress, AssignmentStatus.Assigned, AssignmentStatus.Created },
                 StartDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)),
@@ -508,7 +509,7 @@
             Assert.True(actualUpdateAssignmentResult != null, "actualUpdateAssignmentResult should be of type OkObjectResult");
             Assert.Equal(200, actualUpdateAssignmentResult.StatusCode);
             Assert.NotNull(actualUpdateAssignmentResult.Value);
-            Assert.Equal(4, ((IEnumerable<AssignmentResponseViewModel>)actualUpdateAssignmentResult.Value).Count());
+            Assert.Equal(4, ((IEnumerable<AssignmentViewModel>)actualUpdateAssignmentResult.Value).Count());
         }
 
         private void PopulateDataSet1()
@@ -519,20 +520,34 @@
             _testDataStore.EnsureNoAssignments();
             _testDataStore.EnsureClient(new Client { Id = client1Id });
             _testDataStore.EnsureClient(new Client { Id = client2Id });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 0, 0)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 1, 12)), Status = AssignmentStatus.Completed });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 31, 18)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 33, 6)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 45, 0)), Status = AssignmentStatus.Assigned });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 9, 45)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0)), Status = AssignmentStatus.InProgress });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 17, 0, 0)), Status = AssignmentStatus.Created });
-            _testDataStore.EnsureAssignment(new Assignment { ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 1, 12)), Status = AssignmentStatus.Completed });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client1Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 31, 18)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 33, 6)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 15, 45, 0)), Status = AssignmentStatus.Assigned });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 9, 45)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 16, 30, 0)), Status = AssignmentStatus.InProgress });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 17, 0, 0)), Status = AssignmentStatus.Created });
+            _testDataStore.EnsureAssignment(new Assignment { Id = Guid.NewGuid().ToString("n"), ClientId = client2Id, CreationDateTime = new DateTimeOffset(new DateTime(2017, 05, 13, 20, 0, 0)), Status = AssignmentStatus.Completed });
         }
 
-        private AssignmentController GetAssignmentController() =>
-            new AssignmentController(new AssignmentRepository(_mongoDatabase), new NotificationServicesMock(), new ImageStoreMock());
+        private AssignmentController GetAssignmentController()
+        {
+            var controller = 
+            new AssignmentController(new AssignmentRepository(_mongoDatabase), new ImageBucketRepository(_mongoDatabase), new NotificationServicesMock());
+            var urlMock = new Mock<IUrlHelper>();
+            
+            urlMock.Setup(_ =>
+            _.Link(It.Is<string>(routeName => routeName == "GetAssignment"), It.Is<object>(values => true)))
+                .Returns((string routeName, object values) => 
+                {
+                    var valuesDic = values.ToDictionary();
+                    return $"some-host/assignment/{valuesDic["id"]}";
+                });
+            controller.Url = urlMock.Object;
+            return controller;
+        }
 
     }
 }

@@ -1,14 +1,15 @@
-﻿using MongoDB.Driver;
-using MongoDB.Driver.Linq;
-using Rscue.Api.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace Rscue.Api.Services
+﻿namespace Rscue.Api.Services
 {
+    using Extensions;
+    using MongoDB.Driver;
+    using MongoDB.Driver.Linq;
+    using Rscue.Api.Models;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     public class AssignmentRepository : IAssignmentRepository
     {
         private readonly IMongoDatabase _mongoDatabase;
@@ -18,10 +19,10 @@ namespace Rscue.Api.Services
             _mongoDatabase = mongoDatabase ?? throw new ArgumentNullException(nameof(mongoDatabase));
         }
 
-        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> GetAssignmentByIdAsync(string id, 
-                                                                                                                     bool populateClient = false, 
-                                                                                                                     bool populateWorker = false, 
-                                                                                                                     CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<(Assignment assignment, RepositoryOutcomeAction outcomeAction, object error)> GetAssignmentByIdAsync(string id, 
+                                                                                                                               bool populateClient = false, 
+                                                                                                                               bool populateWorker = false, 
+                                                                                                                               CancellationToken cancellationToken = default(CancellationToken))
         {
             if (id == null) throw new ArgumentNullException(nameof(id));
 
@@ -46,100 +47,104 @@ namespace Rscue.Api.Services
             }
 
             return (result, 
-                    result == null ? RepositoryOutcome.NotFound : RepositoryOutcome.Ok, 
+                    result == null ? RepositoryOutcomeAction.NotFoundNone : RepositoryOutcomeAction.OkNone, 
                     null);
         }
 
-        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> NewAssignmentAsync(Assignment assignment, 
-                                                                                                                 CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<(Assignment assignment, RepositoryOutcomeAction outcomeAction, object error)> NewAssignmentAsync(Assignment assignment, 
+                                                                                                                           CancellationToken cancellationToken = default(CancellationToken))
         {
             if (assignment == null) throw new ArgumentNullException(nameof(assignment));
 
-            assignment.Client = await _mongoDatabase.Clients()
-                                                    .Find(x => x.Id == assignment.ClientId)
-                                                    .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Client == null)
+            if (assignment.Status != AssignmentStatus.Created && assignment.Status != AssignmentStatus.Assigned)
             {
-                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id '{assignment.ClientId}' no existe");
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, "An assignment can only be created in status 'Created' or 'Assigned'");
             }
 
-            assignment.Provider = await _mongoDatabase.Providers()
-                                               .Find(x => x.Id == assignment.ProviderId)
-                                               .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Provider == null)
+            object error;
+            if ((error = ValidateStatusAndStatusReason(assignment.Status, assignment.StatusReason) )!= null)
             {
-                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id '{assignment.ProviderId}' no existe");
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
             }
 
-            assignment.Worker = await _mongoDatabase.Workers()
-                                                    .Find(x => x.Id == assignment.WorkerId)
-                                                    .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
+            if ((error = ValidateStatusData(assignment)) != null)
             {
-                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id '{assignment.WorkerId}' no existe");
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
             }
+
+            if ((error = await PopulateAssignmentDependants(assignment, cancellationToken)) != null)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
+            }
+
+            assignment.Id = Guid.NewGuid().ToString("n");
 
             await _mongoDatabase.Assignments()
                                 .InsertOneAsync(assignment, null, cancellationToken);
-            return (assignment, RepositoryOutcome.Created, null);
+
+            return (assignment, RepositoryOutcomeAction.OkCreated, null);
         }
 
-        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> PatchAssignmentAddImageAsync(string id, 
-                                                                                                                           string imageLocation, 
-                                                                                                                           CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<(Assignment assignment, RepositoryOutcomeAction outcomeAction, object error)> UpdateAssignmentAsync(Assignment assignment, 
+                                                                                                                              CancellationToken cancellationToken = default(CancellationToken))
         {
-            var updateResult = (UpdateResult)null;
-            var assignment = (Assignment)null;
-            do
+            if (assignment.Status == AssignmentStatus.Created)
             {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, "An assignment cannot be updated to status 'Created'");
+            }
 
-                assignment = await _mongoDatabase.Assignments().Find(x => x.Id == id).SingleOrDefaultAsync();
-                var imageUrls = assignment.ImageUrls ?? new List<string>();
-                imageUrls.Add(imageLocation);
-                var updateDefinitition = new UpdateDefinitionBuilder<Assignment>().Set(x => x.ImageUrls, imageUrls).Set(x => x.UpdateDateTime, DateTimeOffset.Now);
-                updateResult = await _mongoDatabase.Assignments().UpdateOneAsync(x => x.Id == id
-                && x.UpdateDateTime == assignment.UpdateDateTime, updateDefinitition);
-            } while (updateResult.ModifiedCount == 0);
-            return (assignment, RepositoryOutcome.Ok, null);
+            object error;
+            if ((error = ValidateStatusAndStatusReason(assignment.Status, assignment.StatusReason)) != null)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
+            }
+
+            if ((error = ValidateStatusData(assignment)) != null)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
+            }
+
+            if ((error = await PopulateAssignmentDependants(assignment, cancellationToken)) != null)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, error);
+            }
+
+            var provider = assignment.Provider;
+            var client = assignment.Client;
+            var worker = assignment.Worker;
+            var boatTow = assignment.BoatTow;
+
+            assignment = await _mongoDatabase
+                .Assignments()
+                .FindOneAndUpdateAsync(
+                    x => x.Id == assignment.Id,
+                    new UpdateDefinitionBuilder<Assignment>()
+                        .Set(_ => _.ClientId, assignment.ClientId)
+                        .Set(_ => _.ProviderId, assignment.ProviderId)
+                        .Set(_ => _.WorkerId, assignment.WorkerId)
+                        .Set(_ => _.BoatTowId, assignment.BoatTowId)
+                        .Set(_ => _.Comments, assignment.Comments)
+                        .Set(_ => _.EstimatedTimeOfArrival, assignment.EstimatedTimeOfArrival)
+                        .Set(_ => _.InitialLocation, assignment.InitialLocation)
+                        .Set(_ => _.ServiceLocation, assignment.ServiceLocation)
+                        .Set(_ => _.Status, assignment.Status)
+                        .Set(_ => _.StatusReason, assignment.StatusReason)
+                        .Set(_ => _.UpdateDateTime, assignment.UpdateDateTime));
+
+            assignment.Provider = provider;
+            assignment.Client = client;
+            assignment.Worker = worker;
+            assignment.BoatTow = boatTow;
+
+            return (assignment, RepositoryOutcomeAction.OkUpdated, null);
         }
 
-        public async Task<(Assignment assignment, RepositoryOutcome outcome, string message)> UpdateAssignmentAsync(Assignment assignment, 
-                                                                                                                  CancellationToken cancellationToken = default(CancellationToken))
-        {
-            assignment.Client = await _mongoDatabase.Clients()
-                                        .Find(x => x.Id == assignment.ClientId)
-                                        .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Client == null)
-            {
-                return (null, RepositoryOutcome.ValidationError, $"El cliente con el id '{assignment.ClientId}' no existe");
-            }
-
-            assignment.Provider = await _mongoDatabase.Providers()
-                                               .Find(x => x.Id == assignment.ProviderId)
-                                               .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Provider == null)
-            {
-                return (null, RepositoryOutcome.ValidationError, $"El proveedor con id '{assignment.ProviderId}' no existe");
-            }
-
-            assignment.Worker = await _mongoDatabase.Workers()
-                                                    .Find(x => x.Id == assignment.WorkerId)
-                                                    .SingleOrDefaultAsync(cancellationToken);
-            if (assignment.Worker == null && !string.IsNullOrWhiteSpace(assignment.WorkerId))
-            {
-                return (null, RepositoryOutcome.ValidationError, $"El trabajador con id '{assignment.WorkerId}' no existe");
-            }
-
-            await _mongoDatabase.Assignments().ReplaceOneAsync(x => x.Id == assignment.Id, assignment);
-            return (assignment, RepositoryOutcome.Ok, null);
-        }
-
-        public async Task<(IEnumerable<Assignment> assignments, RepositoryOutcome outcome, string message)> SearchAssignmentAsync(DateTimeOffset? startDateTime, 
-                                                                                                                                  DateTimeOffset? endDateTime, 
-                                                                                                                                  IEnumerable<AssignmentStatus> statuses, 
-                                                                                                                                  bool populateClient = false, 
-                                                                                                                                  bool populateWorker = false, 
-                                                                                                                                  CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<(IEnumerable<Assignment> assignments, RepositoryOutcomeAction outcomeAction, object error)> SearchAssignmentAsync(DateTimeOffset? startDateTime,
+                                                                                                                                            DateTimeOffset? endDateTime,
+                                                                                                                                            IEnumerable<AssignmentStatus> statuses,
+                                                                                                                                            bool populateClient = false,
+                                                                                                                                            bool populateWorker = false,
+                                                                                                                                            CancellationToken cancellationToken = default(CancellationToken))
         {
             var assignments = _mongoDatabase.Assignments().AsQueryable();
             if (startDateTime.HasValue)
@@ -196,7 +201,117 @@ namespace Rscue.Api.Services
                 item.Worker = workers.GetValueOrDefault(item.WorkerId);
             }
             
-            return (output, RepositoryOutcome.Ok, null);
+            return (output, RepositoryOutcomeAction.OkNone, null);
+        }
+
+        private static object ValidateStatusAndStatusReason(AssignmentStatus status, AssignmentStatusReason reason)
+        {
+            switch (status)
+            {
+                case AssignmentStatus.Created:
+                    if (reason != AssignmentStatusReason.New)
+                    {
+                        return "An assignment in status 'Created' must have StatusReason set to 'New'";
+                    }
+
+                    break;
+                case AssignmentStatus.Cancelled:
+                    if (reason != AssignmentStatusReason.CancelledByProvider &&
+                        reason != AssignmentStatusReason.CancelledByUser &&
+                        reason != AssignmentStatusReason.CancelledByWorker)
+                    {
+                        return "An assignment in status 'Cancelled' must have StatusReason set to 'CancelledByProvider', 'CancelledByUser' or 'CancelledByWorker'";
+                    }
+
+                    break;
+                case AssignmentStatus.InProgress:
+                    if (reason != AssignmentStatusReason.WorkerEnRoute)
+                    {
+                        return "An assignment in status 'InProgress' must have StatusReason set to 'WorkerEnRoute'";
+                    }
+
+                    break;
+                case AssignmentStatus.Completed:
+                    if (reason != AssignmentStatusReason.ServiceCompleted &&
+                        reason != AssignmentStatusReason.ClosedBySystem)
+                        
+                    {
+                        return "An assignment in status 'Completed' must have StatusReason set to 'ServiceCompleted' or 'ClosedBySystem'";
+                    }
+
+                    break;
+                case AssignmentStatus.Assigned:
+                    if (reason == AssignmentStatusReason.WorkerAssigned)
+                    {
+                        return "An assignment in status 'Assigned' must have StatusReason set to 'WorkerAssigned'";
+                    }
+
+                    break;
+            }
+
+            return null;
+        }
+
+        private static object ValidateStatusData(Assignment assignment)
+        {
+            if (assignment.Status == AssignmentStatus.Assigned)
+            {
+                if (assignment.WorkerId == null)
+                {
+                    return "An assignment in status 'Assigned' must have a worker assigned";
+                }
+
+                if (assignment.BoatTowId == null)
+                {
+                    return "An assignment in status 'Assigned' must have a BoatTow assigned";
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<object> PopulateAssignmentDependants(Assignment assignment, CancellationToken cancellationToken)
+        {
+            assignment.Client = await _mongoDatabase.Clients()
+                                        .Find(x => x.Id == assignment.ClientId)
+                                        .SingleOrDefaultAsync(cancellationToken);
+            if (assignment.Client == null)
+            {
+                return $"Client with id '{assignment.ClientId}' does not exist.";
+            }
+
+            assignment.Provider = await _mongoDatabase.Providers()
+                                                      .Find(x => x.Id == assignment.ProviderId)
+                                                      .SingleOrDefaultAsync(cancellationToken);
+            if (assignment.Provider == null)
+            {
+                return $"Provider with id '{assignment.ProviderId}' does not exist.";
+            }
+
+            if (assignment.WorkerId != null)
+            {
+                assignment.Worker = await _mongoDatabase.Workers()
+                                                        .Find(x => x.Id == assignment.WorkerId)
+                                                        .SingleOrDefaultAsync(cancellationToken);
+                if (assignment.Worker == null)
+                {
+                    return $"ProviderWorker with id '{assignment.WorkerId}' does not exist.";
+                }
+            }
+
+            if (assignment.BoatTowId != null)
+            {
+                assignment.BoatTow = await _mongoDatabase.BoatTows()
+                                                        .Find(x => x.Id == assignment.BoatTowId)
+                                                        .SingleOrDefaultAsync(cancellationToken);
+
+                if (assignment.BoatTow == null)
+                {
+                    return $"ProviderBoatTow with id '{assignment.BoatTowId}' does not exist.";
+                }
+            }
+
+            return null;
         }
     }
 }

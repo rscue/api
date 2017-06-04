@@ -1,4 +1,4 @@
-﻿namespace Rscue.Api
+﻿namespace Rscue.Api.Extensions
 {
     using MongoDB.Driver;
     using Rscue.Api.Models;
@@ -12,5 +12,9 @@
         public static IMongoCollection<Worker> Workers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Worker>("workers");
 
         public static IMongoCollection<Provider> Providers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Provider>("providers");
+
+        public static IMongoCollection<ProviderBoatTow> BoatTows(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<ProviderBoatTow>("boattows");
+
+        public static IMongoCollection<ImageBucket> ImageBuckets(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<ImageBucket>("image-buckets");
     }
 }

@@ -23,6 +23,8 @@ using Rscue.Api.Plumbing;
 using Rscue.Api.ViewModels;
 using Swashbuckle.AspNetCore.Swagger;
 using Rscue.Api.Services;
+using System.Threading;
+using Rscue.Api.ModelBinders;
 
 namespace Rscue.Api
 {
@@ -46,15 +48,21 @@ namespace Rscue.Api
             ApplicationServicesHelper.ConfigureApplicationServices(services);
             services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+                options.AddPolicy("AllowAll", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Location"));
             });
             services.Configure<AzureSettings>(Configuration.GetSection("AzureSettings"));
             services.Configure<Auth0Settings>(Configuration.GetSection("Auth0Settings"));
             services.Configure<ProviderAppSettings>(Configuration.GetSection("ProviderApp"));
-            services.AddMvc().AddJsonOptions(jsonOptions =>
-            {
-                jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());
-            });
+            services
+                .AddMvc()
+                .AddMvcOptions(options => 
+                {
+                    options.ModelBinderProviders.Insert(0, new RawContentBinderProvider());
+                })
+                .AddJsonOptions(jsonOptions =>
+                {
+                    jsonOptions.SerializerSettings.Converters.Add(new StringEnumConverter());
+                });
 
             services.AddScoped<IMongoDatabase>(provider =>
             {
@@ -82,8 +90,9 @@ namespace Rscue.Api
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IImageStore imageStore)
         {
+            imageStore.ProvisionStores(CancellationToken.None);
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -93,6 +102,7 @@ namespace Rscue.Api
             {
                 app.UseStatusCodePages();
             }
+
             app.UseCors("AllowAll");
             app.UseStaticFiles();            
             app.UseJwtBearerAuthentication(new JwtBearerOptions

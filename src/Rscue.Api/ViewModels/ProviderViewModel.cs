@@ -27,7 +27,8 @@ namespace Rscue.Api.ViewModels
         [EmailAddress(ErrorMessage = "Debe proporcionar un email válido")]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "El campo es requerido")]
-        public Uri AvatarUri { get; set; }
+        public string ProfilePictureUrl { get; set; }
+
+        public string ProviderBoatTowsUrl { get; set; }
     }
 }

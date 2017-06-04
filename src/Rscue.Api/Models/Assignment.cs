@@ -9,7 +9,7 @@ namespace Rscue.Api.Models
     public class Assignment
     {
         [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
+        [BsonElement]
         public string Id { get; set; }
 
         [BsonElement]
@@ -48,7 +48,7 @@ namespace Rscue.Api.Models
         public string Comments { get; set; }
 
         [BsonElement]
-        public IList<string> ImageUrls { get; set; }
+        public ImageBucketKey ImageBucketKey { get; set; }
 
         [BsonElement]
         public TimeSpan? EstimatedTimeOfArrival { get; set; }
@@ -63,6 +63,6 @@ namespace Rscue.Api.Models
         public Provider Provider { get; set; }
 
         [BsonIgnore]
-        public BoatTow BoatTow { get; set; }
+        public ProviderBoatTow BoatTow { get; set; }
     }
 }

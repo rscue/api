@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using Rscue.Api.Models;
-
-namespace Rscue.Api.ViewModels
+﻿namespace Rscue.Api.ViewModels
 {
-    public class AssignmentSearchViewModel
+    using System;
+    using System.Collections.Generic;
+    using Rscue.Api.Models;
+
+    public class SearchAssignmentBindingModel
     {
         public IEnumerable<AssignmentStatus> Statuses { get; set; }
 

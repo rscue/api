@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson;
+using System.Collections.Generic;
 
 namespace Rscue.Api.Models
 {
@@ -35,8 +37,10 @@ namespace Rscue.Api.Models
         [BsonElement]
         public string Email { get; set; }
 
-        [Required]
         [BsonElement]
-        public Uri AvatarUri { get; set; }
+        public ImageBucketKey ProviderImageBucketKey { get; set; }
+
+        [BsonExtraElements]
+        public IDictionary<string, object> ExtraElements { get; set; }
     }
 }

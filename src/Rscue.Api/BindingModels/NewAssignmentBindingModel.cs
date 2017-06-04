@@ -1,41 +1,34 @@
-﻿namespace Rscue.Api.ViewModels
+﻿namespace Rscue.Api.BindingModels
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel.DataAnnotations;
     using Rscue.Api.Models;
+    using System;
+    using System.ComponentModel.DataAnnotations;
 
-    public class AssignmentViewModel
+    public class NewAssignmentBindingModel
     {
-        public string Id { get; set; }
-
+        [Required]
         public string ClientId { get; set; }
 
+        [Required]
         public string ProviderId { get; set; }
         
+        [Required]
         public DateTimeOffset CreationDateTime { get; set; }
 
         public GeoLocation InitialLocation { get; set; }
 
-        public GeoLocation ServiceLocation { get; set; }
-
+        [Required]
         public AssignmentStatus Status { get; set; }
 
+        [Required]
         public AssignmentStatusReason StatusReason { get; set; }
 
-        public DateTimeOffset? UpdateDateTime { get; set; }
-        
         public string WorkerId { get; set; }
 
         public string BoatTowId { get; set; }
 
         public string Comments { get; set; }
 
-        public string ImagesUrl { get; set; }
-
-        public string ClientName { get; set; }
-        public string WorkerName { get; set; }
-        public string ClientAvatarUri { get; set; }
         public TimeSpan? EstimatedTimeOfArrival { get; set; }
     }
 }

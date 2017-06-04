@@ -1,23 +1,34 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
-namespace Rscue.Api.ViewModels
+namespace Rscue.Api.Models
 {
-    public class BoatTowViewModel
+    public class ProviderBoatTow
     {
+        [BsonId]
+        [BsonElement]
         public string Id { get; set; }
 
-        [Required(ErrorMessage = "El campo es requerido")]
+        [Required]
         public string Name { get; set; }
 
-        [Required(ErrorMessage = "El campo es requerido")]
+        [Required]
+        [BsonElement]
         public string BoatModel { get; set; }
 
-        [Required(ErrorMessage = "El campo es requerido")]
+        [Required]
+        [BsonElement]
         public string EngineType { get; set; }
 
+        [BsonElement]
         public string RegistrationNumber { get; set; }
 
+        [BsonElement]
+        public string ProviderId { get; set; }
+
+        [BsonElement]
         public double? FuelCostPerKm { get; set; }
     }
 }
