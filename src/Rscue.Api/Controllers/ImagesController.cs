@@ -57,7 +57,7 @@
         }
 
         [HttpGet("{store:required}/{bucket:required}", Name = Constants.Routes.GET_IMAGES)]
-        [ProducesResponseType(typeof(byte[]), 200)]
+        [ProducesResponseType(typeof(string[]), 200)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetImages(string store, string bucket, CancellationToken cancellationToken = default(CancellationToken))
         {
