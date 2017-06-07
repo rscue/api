@@ -15,7 +15,7 @@ namespace Rscue.Api
         {
             var config = new ConfigurationBuilder()
                 .AddCommandLine(args)
-                .AddEnvironmentVariables(prefix: "ASPNETCORE_")
+                .AddEnvironmentVariables(prefix: "RSCUE_API_")
                 .Build();
 
             var host = new WebHostBuilder()
