@@ -36,7 +36,7 @@ namespace Rscue.Api
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables();
+                .AddEnvironmentVariables(prefix: "RSCUE_API_");
             Configuration = builder.Build();
         }
 
