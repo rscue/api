@@ -38,7 +38,7 @@ namespace Rscue.Api.Controllers
         {
             if (ModelState.IsValid)
             {
-                var collection = _mongoDatabase.GetCollection<Worker>("workers");
+                var collection = _mongoDatabase.GetCollection<ProviderWorker>("workers");
                 var exists = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
 
                 if (exists == null)
@@ -52,7 +52,7 @@ namespace Rscue.Api.Controllers
                     return await Task.FromResult(NotFound($"No existe un proveedor con id {exists.ProviderId}"));
                 }
 
-                var worker = new Worker
+                var worker = new ProviderWorker
                 {
                     Id = model.Id,
                     ProviderId = provider.Id,
@@ -82,7 +82,7 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetWorker(string id)
         {
-            var collection = _mongoDatabase.GetCollection<Worker>("workers");
+            var collection = _mongoDatabase.GetCollection<ProviderWorker>("workers");
             var worker = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
 
             if (worker == null)
@@ -99,7 +99,7 @@ namespace Rscue.Api.Controllers
                 AvatarUri = worker.AvatarUri,
                 Email = worker.Email,
                 LastName = worker.LastName,
-                Location = worker.Location == null ? null : new LocationViewModel { Latitude = worker.Location.Latitude, Longitude = worker.Location.Longitude },
+                Location = worker.LastKnownLocation == null ? null : new LocationViewModel { Latitude = worker.LastKnownLocation.Latitude, Longitude = worker.LastKnownLocation.Longitude },
                 Status = worker.Status
             };
 
@@ -113,7 +113,7 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> UpdateWorkerCurrentLocation(string id, [FromBody] LocationViewModel location)
         {
-            var collection = _mongoDatabase.GetCollection<Worker>("workers");
+            var collection = _mongoDatabase.GetCollection<ProviderWorker>("workers");
             var worker = await collection.Find(x => x.Id == id).SingleOrDefaultAsync();
 
             if (worker == null)
@@ -125,7 +125,7 @@ namespace Rscue.Api.Controllers
             _connectionManager.GetHubContext<WorkersHub>().Clients.User(providerId).updateWorkerLocation(id, location);
 
             var updatedLocation = new GeoJson2DGeographicCoordinates(location.Longitude, location.Latitude);
-            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.Location, updatedLocation);
+            var updateDefinitition = new UpdateDefinitionBuilder<ProviderWorker>().Set(x => x.LastKnownLocation, updatedLocation);
             await collection.UpdateOneAsync(x => x.Id == id, updateDefinitition);
 
             return await Task.FromResult(Ok());
@@ -138,14 +138,14 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> AddUpdateDeviceId(string id, [FromBody] DeviceRegistrationViewModel device)
         {
-            var worker = await _mongoDatabase.GetCollection<Worker>("workers").Find(x => x.Id == id).SingleOrDefaultAsync();
+            var worker = await _mongoDatabase.GetCollection<ProviderWorker>("workers").Find(x => x.Id == id).SingleOrDefaultAsync();
             if (worker == null)
             {
                 return await Task.FromResult(NotFound($"No existe un trabajador con id {id}"));
             }
 
-            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.DeviceId, device.DeviceId);
-            await _mongoDatabase.GetCollection<Worker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+            var updateDefinitition = new UpdateDefinitionBuilder<ProviderWorker>().Set(x => x.DeviceId, device.DeviceId);
+            await _mongoDatabase.GetCollection<ProviderWorker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
 
             return await Task.FromResult(Ok());
         }

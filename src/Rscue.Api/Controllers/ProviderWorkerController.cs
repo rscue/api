@@ -54,7 +54,7 @@ namespace Rscue.Api.Controllers
                     }
 
                     model.Id = await CreateAuth0User(model);
-                    var worker = new Worker
+                    var worker = new ProviderWorker
                     {
                         Id = model.Id,
                         ProviderId = provider.Id,
@@ -65,7 +65,7 @@ namespace Rscue.Api.Controllers
                         PhoneNumber = model.PhoneNumber
                     };
 
-                    await _mongoDatabase.GetCollection<Worker>("workers").InsertOneAsync(worker);
+                    await _mongoDatabase.GetCollection<ProviderWorker>("workers").InsertOneAsync(worker);
 
                     var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id}");
                     return await Task.FromResult(Created(uri, model));
@@ -102,9 +102,9 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<WorkerViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<WorkerStatus> status)
+        public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<ProviderWorkerStatus> status)
         {
-            var collection = _mongoDatabase.GetCollection<Worker>("workers");
+            var collection = _mongoDatabase.GetCollection<ProviderWorker>("workers");
             var models = collection.AsQueryable().Where(x => x.ProviderId == providerId);
 
             if (status.Any())
@@ -130,7 +130,7 @@ namespace Rscue.Api.Controllers
                     AvatarUri = worker.AvatarUri,
                     Email = worker.Email,
                     DeviceId = worker.DeviceId,
-                    Location = worker.Location == null ? null : new LocationViewModel { Latitude = worker.Location.Latitude, Longitude = worker.Location.Longitude },
+                    Location = worker.LastKnownLocation == null ? null : new LocationViewModel { Latitude = worker.LastKnownLocation.Latitude, Longitude = worker.LastKnownLocation.Longitude },
                     Status = worker.Status
                 });
             }
@@ -147,7 +147,7 @@ namespace Rscue.Api.Controllers
         public async Task<IActionResult> UpdateProfilePicture(string providerId, string id,
             [FromBody] AvatarViewModel avatar)
         {
-            var provider = await _mongoDatabase.GetCollection<Worker>("workers")
+            var provider = await _mongoDatabase.GetCollection<ProviderWorker>("workers")
                         .Find(x => x.Id == id && x.ProviderId == providerId)
                         .SingleOrDefaultAsync();
             if (provider == null)
@@ -166,8 +166,8 @@ namespace Rscue.Api.Controllers
             var blockBlob = blobContainer.GetBlockBlobReference(imageName);
             await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
 
-            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.AvatarUri, blockBlob.Uri);
-            await _mongoDatabase.GetCollection<Worker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
+            var updateDefinitition = new UpdateDefinitionBuilder<ProviderWorker>().Set(x => x.AvatarUri, blockBlob.Uri);
+            await _mongoDatabase.GetCollection<ProviderWorker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
 
             return await Task.FromResult(Ok(blockBlob.Uri));
         }        

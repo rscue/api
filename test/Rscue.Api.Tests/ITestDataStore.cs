@@ -11,7 +11,7 @@
         void EnsureProvider(Provider provider);
         void EnsureClient(Client client);
         void EnsureAssignment(Assignment assignment);
-        void EnsureWorker(Worker worker);
+        void EnsureWorker(ProviderWorker worker);
         void EnsureImageBucket(ImageBucket imageBucket);
         void EnsureProviderBoatTow(ProviderBoatTow providerBoatTow);
 

@@ -75,7 +75,7 @@
             _mongoDatabase.Providers().DeleteOne(_ => _.Id == providerId);
         }
 
-        public void EnsureWorker(Worker worker)
+        public void EnsureWorker(ProviderWorker worker)
         {
             _mongoDatabase.Workers().InsertOne(worker);
         }

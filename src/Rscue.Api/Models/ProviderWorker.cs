@@ -7,7 +7,7 @@ using Rscue.Api.Models;
 
 namespace Rscue.Api.Models
 {
-    public class Worker
+    public class ProviderWorker
     {
         [BsonId]
         public string Id { get; set; }
@@ -38,9 +38,9 @@ namespace Rscue.Api.Models
         public string ProviderId { get; set; }
 
         [BsonElement]
-        public GeoJson2DGeographicCoordinates Location { get; set; }
+        public GeoJson2DGeographicCoordinates LastKnownLocation { get; set; }
 
         [BsonElement]
-        public WorkerStatus Status { get; set; }
+        public ProviderWorkerStatus Status { get; set; }
     }
 }

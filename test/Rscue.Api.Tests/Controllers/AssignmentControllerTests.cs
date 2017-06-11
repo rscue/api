@@ -36,7 +36,7 @@
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignment =
                             new Assignment
                             {
@@ -92,7 +92,7 @@
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
                             new NewAssignmentBindingModel
                             {
@@ -127,7 +127,7 @@
 
             var nonExistantProviderId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
                             new NewAssignmentBindingModel
                             {
@@ -197,7 +197,7 @@
 
             var nonExistantClientId = "ffff0000ffff0000ffff0000ffff0000";
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignmentVM =
                             new NewAssignmentBindingModel
                             {
@@ -232,7 +232,7 @@
 
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignment =
                 new Assignment
                 {
@@ -283,7 +283,7 @@
             var nonExistantAssignmentId = "ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
 
             var updateAssignmentVM =
                 new UpdateAssignmentBindingModel
@@ -320,7 +320,7 @@
             var nonExistantProviderId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignment =
                 new Assignment
                 {
@@ -371,7 +371,7 @@
             var nonExistantWorkerId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignment =
                 new Assignment
                 {
@@ -422,7 +422,7 @@
             var nonExistantClientId = "ffff0000ffff0000ffff0000ffff0000";
             var client = new Client { Id = Guid.NewGuid().ToString("n"), Name = "John", LastName = "Carmack" };
             var provider = new Provider { Id = Guid.NewGuid().ToString("n"), Name = "bTow" };
-            var worker = new Worker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
+            var worker = new ProviderWorker { Id = Guid.NewGuid().ToString("n"), Name = "Andrew", LastName = "Garfield" };
             var assignment =
                 new Assignment
                 {

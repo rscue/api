@@ -39,6 +39,6 @@ namespace Rscue.Api.ViewModels
 
         public LocationViewModel Location { get; set; }
 
-        public WorkerStatus Status { get; set; }
+        public ProviderWorkerStatus Status { get; set; }
     }
 }
