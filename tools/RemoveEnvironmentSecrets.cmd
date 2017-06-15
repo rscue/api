@@ -1,3 +1,0 @@
-@echo off
-set RSCUE_API_AzureSettings__StorageConnectionString=
-set RSCUE_API_MongoDb__Url=

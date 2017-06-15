@@ -17,7 +17,8 @@
 
         public ImageStoreTests()
         {
-            var azureSettings = new AzureSettings { StorageConnectionString = "DefaultEndpointsProtocol=https;AccountName=rscuestoreunittest;AccountKey=AOxLUIRkQ8M+o7sR0lV6V0syRS7NO6Px8IyJP9e6Bx5zojd53iKtLgQ9A31sNnJlk8utLbCYNnuMpSdImmTucw==;EndpointSuffix=core.windows.net" };
+            var storageConnectionString = Environment.GetEnvironmentVariable("RSCUE_API_AzureSettings__StorageConnectionString");
+            var azureSettings = new AzureSettings { StorageConnectionString = storageConnectionString };
             _imageStore = new ImageStore(Options.Create(azureSettings));
         }
 
