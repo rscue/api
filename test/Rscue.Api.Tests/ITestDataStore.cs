@@ -14,6 +14,7 @@
         void EnsureWorker(ProviderWorker worker);
         void EnsureImageBucket(ImageBucket imageBucket);
         void EnsureProviderBoatTow(ProviderBoatTow providerBoatTow);
+        void EnsureProviderWorker(ProviderWorker providerWorker);
 
         void EnsureImageBucketDoesNotExist(ImageBucketKey imageBucketKey);
         void EnsureProviderDoesNotExist(string providerId);
@@ -21,9 +22,11 @@
         void EnsureAssignmentDoesNotExist(string assignmentId);
         void EnsureWorkerDoesNotExist(string workerId);
         void EnsureProviderBoatTowDoesNotExist(string providerId, string id);
+        void EnsureProviderWorkerDoesNotExist(string providerId, string id);
 
         bool TestImageBucket(Expression<Func<ImageBucket, bool>> filter);
         bool TestProvider(Expression<Func<Provider, bool>> filter);
         bool TestProviderBoatTow(Expression<Func<ProviderBoatTow, bool>> filter);
+        bool TestProviderWorker(Expression<Func<ProviderWorker, bool>> filter);
     }
 }

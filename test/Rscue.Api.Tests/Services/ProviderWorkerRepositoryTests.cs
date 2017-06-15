@@ -6,17 +6,17 @@
     using System.Threading.Tasks;
     using Xunit;
 
-    [Collection("ProviderBoatTowRepository")]
+    [Collection("ProviderWorkerRepository")]
     [Trait("DependsOn", "mongodb")]
-    public class ProviderBoatTowRepositoryTests
+    public class ProviderWorkerRepositoryTests
     {
-        private readonly IProviderBoatTowRepository _providerBoatTowRepository;
+        private readonly IProviderWorkerRepository _providerWorkerRepository;
         private ITestDataStore _dataStore;
 
-        public ProviderBoatTowRepositoryTests()
+        public ProviderWorkerRepositoryTests()
         {
             var mongoDatabase = MongoDbHelper.GetRscueCenterUnitTestDatabase();
-            _providerBoatTowRepository = new ProviderBoatTowRepository(mongoDatabase);
+            _providerWorkerRepository = new ProviderWorkerRepository(mongoDatabase);
             _dataStore = new MongoTestDataStore(mongoDatabase);
         }
 
@@ -38,31 +38,31 @@
                 Address = "742 Evergreen Terrace",
             };
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerWorker = new ProviderWorker
             {
                 Id = id,
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson"
             };
 
             _dataStore.EnsureProvider(provider);
-            _dataStore.EnsureProviderBoatTow(providerBoatTow);
+            _dataStore.EnsureProviderWorker(providerWorker);
 
             // act 
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.GetByIdAsync(providerId, id);
 
             // assert
-            Assert.NotNull(providerBoatTowResult);
+            Assert.NotNull(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.OkNone, outcomeAction);
             Assert.Null(error);
-            Assert.Equal(providerBoatTow.Id, providerBoatTowResult.Id);
-            Assert.Equal(providerBoatTow.ProviderId, providerBoatTowResult.ProviderId);
-            Assert.Equal(providerBoatTow.FuelCostPerKm, providerBoatTowResult.FuelCostPerKm);
-            Assert.Equal(providerBoatTow.Name, providerBoatTowResult.Name);
-            Assert.Equal(providerBoatTow.RegistrationNumber, providerBoatTowResult.RegistrationNumber);
-            Assert.Equal(providerBoatTow.BoatModel, providerBoatTowResult.BoatModel);
-            Assert.Equal(providerBoatTow.EngineType, providerBoatTowResult.EngineType);
+            Assert.Equal(providerWorker.Id, providerWorkerResult.Id);
+            Assert.Equal(providerWorker.ProviderId, providerWorkerResult.ProviderId);
+            Assert.Equal(providerWorker.LastKnownLocation, providerWorkerResult.LastKnownLocation);
+            Assert.Equal(providerWorker.LastName, providerWorkerResult.LastName);
+            Assert.Equal(providerWorker.Name, providerWorkerResult.Name);
+            Assert.Equal(providerWorker.PhoneNumber, providerWorkerResult.PhoneNumber);
+            Assert.Equal(providerWorker.Status, providerWorkerResult.Status);
         }
 
         [Fact]
@@ -72,20 +72,20 @@
             var providerId = "0000ffff0000ffff0000ffff0000ffff";
             var id = "0000ffff0000ffff0000ffff0000ffff";
 
-            _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
+            _dataStore.EnsureProviderWorkerDoesNotExist(providerId, id);
             _dataStore.EnsureProviderDoesNotExist(providerId);
 
             // act 
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.GetByIdAsync(providerId, id);
 
             // assert
-            Assert.Null(providerBoatTowResult);
+            Assert.Null(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
 
         [Fact]
-        public async Task TestGetByIdAsyncReturnsNullOnNonExistantProviderBoatTow()
+        public async Task TestGetByIdAsyncReturnsNullOnNonExistantProviderWorker()
         {
             // arrange
             var providerId = Guid.NewGuid().ToString("n");
@@ -104,43 +104,43 @@
             };
 
             _dataStore.EnsureProvider(provider);
-            _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
+            _dataStore.EnsureProviderWorkerDoesNotExist(providerId, id);
 
             // act 
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.GetByIdAsync(providerId, id);
 
             // assert
-            Assert.Null(providerBoatTowResult);
+            Assert.Null(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
 
         [Fact]
-        public async Task TesNewAsyncFailsToCreateProviderBoatTowWhenProviderDoesNotExist()
+        public async Task TesNewAsyncFailsToCreateProviderWorkerWhenProviderDoesNotExist()
         {
             // arrange
             var providerId = "0000ffff0000ffff0000ffff0000ffff";
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerWorker = new ProviderWorker
             {
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson"
             };
 
             _dataStore.EnsureProviderDoesNotExist(providerId);
 
             // act
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.NewAsync(providerId, providerBoatTow);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.NewAsync(providerId, providerWorker);
 
             // assert
-            Assert.Null(providerBoatTowResult);
+            Assert.Null(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
             Assert.NotNull(error);
         }
 
         [Fact]
-        public async Task TesNewAsyncCreatesProviderBoatTowResult()
+        public async Task TesNewAsyncCreatesProviderWorkerResult()
         {
             // arrange
             var providerId = Guid.NewGuid().ToString("n");
@@ -156,44 +156,44 @@
                 Address = "742 Evergreen Terrace",
             };
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerWorker = new ProviderWorker
             {
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson",
             };
 
             _dataStore.EnsureProvider(provider);
 
             // act
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.NewAsync(providerId, providerBoatTow);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.NewAsync(providerId, providerWorker);
 
             // assert
-            Assert.NotNull(providerBoatTowResult);
+            Assert.NotNull(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.OkCreated, outcomeAction);
             Assert.Null(error);
             // here we check that what was returned is the same as we sent.
-            Assert.NotNull(providerBoatTowResult.Id);
-            Assert.Equal(providerBoatTow.ProviderId, providerBoatTowResult.ProviderId);
-            Assert.Equal(providerBoatTow.FuelCostPerKm, providerBoatTowResult.FuelCostPerKm);
-            Assert.Equal(providerBoatTow.Name, providerBoatTowResult.Name);
-            Assert.Equal(providerBoatTow.RegistrationNumber, providerBoatTowResult.RegistrationNumber);
-            Assert.Equal(providerBoatTow.BoatModel, providerBoatTowResult.BoatModel);
-            Assert.Equal(providerBoatTow.EngineType, providerBoatTowResult.EngineType);
+            Assert.NotNull(providerWorkerResult.Id);
+            Assert.Equal(providerWorker.ProviderId, providerWorkerResult.ProviderId);
+            Assert.Equal(providerWorker.LastKnownLocation, providerWorkerResult.LastKnownLocation);
+            Assert.Equal(providerWorker.LastName, providerWorkerResult.LastName);
+            Assert.Equal(providerWorker.Name, providerWorkerResult.Name);
+            Assert.Equal(providerWorker.PhoneNumber, providerWorkerResult.PhoneNumber);
+            Assert.Equal(providerWorker.Status, providerWorkerResult.Status);
             Assert.True(
                 _dataStore
-                    .TestProviderBoatTow(_ =>
-                        _.Id == providerBoatTow.Id &&
-                        _.ProviderId == providerBoatTow.ProviderId &&
-                        _.FuelCostPerKm == providerBoatTow.FuelCostPerKm &&
-                        _.Name == providerBoatTow.Name &&
-                        _.RegistrationNumber == providerBoatTow.RegistrationNumber &&
-                        _.BoatModel == providerBoatTow.BoatModel &&
-                        _.EngineType == providerBoatTow.EngineType));
+                    .TestProviderWorker(_ =>
+                        _.Id == providerWorker.Id &&
+                        _.ProviderId == providerWorker.ProviderId &&
+                        _.LastKnownLocation == providerWorker.LastKnownLocation &&
+                        _.LastName == providerWorker.LastName &&
+                        _.Name == providerWorker.Name &&
+                        _.PhoneNumber == providerWorker.PhoneNumber &&
+                        _.Status == providerWorker.Status));
         }
 
         [Fact]
-        public async Task TestUpdateAsyncUpdatesProviderBoatTow()
+        public async Task TestUpdateAsyncUpdatesProviderWorker()
         {
             // arrange
             var providerId = Guid.NewGuid().ToString("n");
@@ -210,51 +210,51 @@
                 Address = "742 Evergreen Terrace",
             };
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerWorker = new ProviderWorker
             {
                 Id = id,
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson"
             };
 
-            var updatedProviderBoatTow = new ProviderBoatTow
+            var updatedProviderWorker = new ProviderWorker
             {
                 Id = id,
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASDF"
+                Name = "Bart",
+                LastName = "Simpson"
             };
 
             _dataStore.EnsureProvider(provider);
-            _dataStore.EnsureProviderBoatTow(providerBoatTow);
+            _dataStore.EnsureProviderWorker(providerWorker);
 
             // act 
-            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, updatedProviderBoatTow);
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.UpdateAsync(providerId, updatedProviderWorker);
 
             // assert
-            Assert.NotNull(providerBoatTowResult);
+            Assert.NotNull(providerWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.OkUpdated, outcomeAction);
             Assert.Null(error);
 
-            Assert.Equal(updatedProviderBoatTow.Id, providerBoatTowResult.Id);
-            Assert.Equal(updatedProviderBoatTow.ProviderId, providerBoatTowResult.ProviderId);
-            Assert.Equal(updatedProviderBoatTow.FuelCostPerKm, providerBoatTowResult.FuelCostPerKm);
-            Assert.Equal(updatedProviderBoatTow.Name, providerBoatTowResult.Name);
-            Assert.Equal(updatedProviderBoatTow.RegistrationNumber, providerBoatTowResult.RegistrationNumber);
-            Assert.Equal(updatedProviderBoatTow.BoatModel, providerBoatTowResult.BoatModel);
-            Assert.Equal(updatedProviderBoatTow.EngineType, providerBoatTowResult.EngineType);
+            Assert.Equal(updatedProviderWorker.Id, providerWorkerResult.Id);
+            Assert.Equal(updatedProviderWorker.ProviderId, providerWorkerResult.ProviderId);
+            Assert.Equal(updatedProviderWorker.LastKnownLocation, providerWorkerResult.LastKnownLocation);
+            Assert.Equal(updatedProviderWorker.LastName, providerWorkerResult.LastName);
+            Assert.Equal(updatedProviderWorker.Name, providerWorkerResult.Name);
+            Assert.Equal(updatedProviderWorker.PhoneNumber, providerWorkerResult.PhoneNumber);
+            Assert.Equal(updatedProviderWorker.Status, providerWorkerResult.Status);
 
             Assert.True(
                 _dataStore
-                    .TestProviderBoatTow(_ =>
-                        _.Id == updatedProviderBoatTow.Id &&
-                        _.ProviderId == updatedProviderBoatTow.ProviderId &&
-                        _.FuelCostPerKm == updatedProviderBoatTow.FuelCostPerKm &&
-                        _.Name == updatedProviderBoatTow.Name &&
-                        _.RegistrationNumber == updatedProviderBoatTow.RegistrationNumber &&
-                        _.BoatModel == updatedProviderBoatTow.BoatModel &&
-                        _.EngineType == updatedProviderBoatTow.EngineType));
+                    .TestProviderWorker(_ =>
+                        _.Id == updatedProviderWorker.Id &&
+                        _.ProviderId == updatedProviderWorker.ProviderId &&
+                        _.LastKnownLocation == updatedProviderWorker.LastKnownLocation &&
+                        _.LastName == updatedProviderWorker.LastName &&
+                        _.Name == updatedProviderWorker.Name &&
+                        _.PhoneNumber == updatedProviderWorker.PhoneNumber &&
+                        _.Status == updatedProviderWorker.Status));
         }
 
         [Fact]
@@ -264,21 +264,21 @@
             var providerId = "0000ffff0000ffff0000ffff0000ffff";
             var id = Guid.NewGuid().ToString("n");
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerBoatTow = new ProviderWorker
             {
                 Id = id,
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson"
             };
 
             _dataStore.EnsureProviderDoesNotExist(providerId);
 
             // act 
-            var (updateProviderBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+            var (updateProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.UpdateAsync(providerId, providerBoatTow);
 
             // assert
-            Assert.Null(updateProviderBoatTowResult);
+            Assert.Null(updateProviderWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
             Assert.NotNull(error);
         }
@@ -301,22 +301,22 @@
                 Address = "742 Evergreen Terrace",
             };
 
-            var providerBoatTow = new ProviderBoatTow
+            var providerWorker = new ProviderWorker
             {
                 Id = id,
                 ProviderId = providerId,
-                FuelCostPerKm = 13,
-                RegistrationNumber = "1234ASD"
+                Name = "Homer",
+                LastName = "Simpson"
             };
 
             _dataStore.EnsureProvider(provider);
             _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
 
             // act 
-            var (updateProviderBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+            var (updateProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.UpdateAsync(providerId, providerWorker);
 
             // assert
-            Assert.Null(updateProviderBoatTowResult);
+            Assert.Null(updateProviderWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
