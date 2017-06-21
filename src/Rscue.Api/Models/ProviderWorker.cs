@@ -29,13 +29,13 @@ namespace Rscue.Api.Models
         public string Email { get; set; }
 
         [BsonElement]
-        public Uri AvatarUri { get; set; }
-
-        [BsonElement]
         public string DeviceId { get; set; }
 
         [BsonElement]
         public string ProviderId { get; set; }
+
+        [BsonElement]
+        public ImageBucketKey ProviderWorkerImageBucketKey { get; set; }
 
         [BsonElement]
         public GeoJson2DGeographicCoordinates LastKnownLocation { get; set; }

@@ -59,6 +59,68 @@
             return (providerWorker, RepositoryOutcomeAction.OkCreated, null);
         }
 
+        public async Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchAllButProviderWorkerImageStoreAsync(string providerId, ProviderWorker providerWorker, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (providerId == null) throw new ArgumentNullException(nameof(providerId));
+            if (providerWorker == null) throw new ArgumentNullException(nameof(providerWorker));
+
+            var providerExists = await (await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
+            if (!providerExists)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
+            }
+
+            providerWorker.ProviderId = providerId;
+            var result =
+                await _mongoDatabase.Workers()
+                    .FindOneAndUpdateAsync(
+                        new FilterDefinitionBuilder<ProviderWorker>()
+                            .And(
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.ProviderId, providerWorker.ProviderId),
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.Id, providerWorker.Id)),
+                        new UpdateDefinitionBuilder<ProviderWorker>()
+                            .Set(_ => _.DeviceId, providerWorker.DeviceId)
+                            .Set(_ => _.Email, providerWorker.Email)
+                            .Set(_ => _.Name, providerWorker.Name)
+                            .Set(_ => _.LastName, providerWorker.LastName)
+                            .Set(_ => _.LastKnownLocation, providerWorker.LastKnownLocation)
+                            .Set(_ => _.PhoneNumber, providerWorker.PhoneNumber)
+                            .Set(_ => _.Status, providerWorker.Status),
+                        new FindOneAndUpdateOptions<ProviderWorker>() { ReturnDocument = ReturnDocument.After },
+                        cancellationToken);
+
+            var outcomeAction = result != null ? RepositoryOutcomeAction.OkUpdated : RepositoryOutcomeAction.NotFoundNone;
+            return (result, outcomeAction, null);
+        }
+
+        public async Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchLastKnownLocationAsync(string providerId, ProviderWorker providerWorker, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (providerId == null) throw new ArgumentNullException(nameof(providerId));
+            if (providerWorker == null) throw new ArgumentNullException(nameof(providerWorker));
+
+            var providerExists = await(await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
+            if (!providerExists)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
+            }
+
+            providerWorker.ProviderId = providerId;
+            var result =
+                await _mongoDatabase.Workers()
+                    .FindOneAndUpdateAsync(
+                        new FilterDefinitionBuilder<ProviderWorker>()
+                            .And(
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.ProviderId, providerWorker.ProviderId),
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.Id, providerWorker.Id)),
+                        new UpdateDefinitionBuilder<ProviderWorker>()
+                            .Set(_ => _.LastKnownLocation, providerWorker.LastKnownLocation),
+                        new FindOneAndUpdateOptions<ProviderWorker>() { ReturnDocument = ReturnDocument.After },
+                        cancellationToken);
+
+            var outcomeAction = result != null ? RepositoryOutcomeAction.OkUpdated : RepositoryOutcomeAction.NotFoundNone;
+            return (result, outcomeAction, null);
+        }
+
         public async Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> UpdateAsync(string providerId, ProviderWorker providerWorker, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (providerId == null) throw new ArgumentNullException(nameof(providerId));
