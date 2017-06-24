@@ -13,7 +13,5 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public string Bucket { get; set; }
-
-        
     }
 }
