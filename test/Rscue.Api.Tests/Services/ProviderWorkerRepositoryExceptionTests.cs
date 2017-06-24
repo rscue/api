@@ -86,7 +86,7 @@
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
         [Fact]
-        public async Task NewAsyncShouldThrowArgumentNullExceptionOnNullProviderBoatTow()
+        public async Task NewAsyncShouldThrowArgumentNullExceptionOnNullProviderWorker()
         {
             // arrange
             var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
@@ -114,7 +114,7 @@
         }
 
         [Fact]
-        public async Task UpdateAsyncShouldThrowArgumentNullExceptionOnNullProviderBoatTow()
+        public async Task UpdateAsyncShouldThrowArgumentNullExceptionOnNullProviderWorker()
         {
             // arrange
             var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
@@ -127,5 +127,60 @@
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
 
+        [Fact]
+        public async Task PatchAllButProviderWorkerImageStoreAsyncShouldThrowArgumentNullExceptionOnNullProviderId()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerWorker = new ProviderWorker();
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchAllButProviderWorkerImageStoreAsync(null, providerWorker));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>(testCode);
+        }
+
+        [Fact]
+        public async Task PatchAllButProviderWorkerImageStoreAsyncShouldThrowArgumentNullExceptionOnNullProviderWorker()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerId = Guid.NewGuid().ToString("n");
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchAllButProviderWorkerImageStoreAsync(providerId, null));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>(testCode);
+        }
+
+        [Fact]
+        public async Task PatchLastKnownLocationAsyncShouldThrowArgumentNullExceptionOnNullProviderId()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerWorker = new ProviderWorker();
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchLastKnownLocationAsync(null, providerWorker));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>(testCode);
+        }
+
+        [Fact]
+        public async Task PatchLastKnownLocationAsyncShouldThrowArgumentNullExceptionOnNullProviderWorker()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerId = Guid.NewGuid().ToString("n");
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchLastKnownLocationAsync(providerId, null));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>(testCode);
+        }
     }
 }

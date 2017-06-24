@@ -37,7 +37,8 @@
                 provisionedStores,
                 _ => Assert.Equal(Constants.ASSIGNMENT_IMAGES_STORE, _),
                 _ => Assert.Equal(Constants.CLIENT_IMAGES_STORE, _),
-                _ => Assert.Equal(Constants.PROVIDER_IMAGES_STORE, _));
+                _ => Assert.Equal(Constants.PROVIDER_IMAGES_STORE, _),
+                _ => Assert.Equal(Constants.WORKER_IMAGES_STORE, _));
 
         }
 

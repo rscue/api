@@ -8,10 +8,19 @@
 
     public static class Constants
     {
+        /*
+         * NOTE: When adding/removing an image store constant please
+         * ImageStore.images static fields.
+         */
+
+        // image store constants
+
         public const string ASSIGNMENT_IMAGES_STORE = "assignment-images";
         public const string PROVIDER_IMAGES_STORE = "provider-images";
         public const string CLIENT_IMAGES_STORE = "client-images";
         public const string WORKER_IMAGES_STORE = "worker-images";
+
+        // end of image store constants
 
         public static class Routes
         {

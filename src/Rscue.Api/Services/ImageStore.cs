@@ -13,7 +13,7 @@
 
     public class ImageStore : IImageStore
     {
-        private static readonly string[] stores = new string[] { Constants.ASSIGNMENT_IMAGES_STORE, Constants.CLIENT_IMAGES_STORE, Constants.PROVIDER_IMAGES_STORE };
+        private static readonly string[] stores = new string[] { Constants.ASSIGNMENT_IMAGES_STORE, Constants.CLIENT_IMAGES_STORE, Constants.PROVIDER_IMAGES_STORE, Constants.WORKER_IMAGES_STORE };
 
         private readonly IOptions<AzureSettings> _azureSettings;
 
