@@ -460,5 +460,139 @@
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
+
+        [Fact]
+        public async Task TestPatchLastKnownLocationAsyncPatchesProviderWorker()
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = Guid.NewGuid().ToString("n");
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerWorker = new ProviderWorker
+            {
+                Id = id,
+                ProviderId = providerId,
+                Name = "Homer",
+                LastName = "Simpson",
+                LastKnownLocation = new MongoDB.Driver.GeoJsonObjectModel.GeoJson2DGeographicCoordinates(-67, 32)
+            };
+
+            var updatedProviderWorker = new ProviderWorker
+            {
+                Id = id,
+                ProviderId = providerId,
+                Name = "Bart",
+                LastName = "Simpson",
+                LastKnownLocation = new MongoDB.Driver.GeoJsonObjectModel.GeoJson2DGeographicCoordinates(-68, 31)
+            };
+
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderWorker(providerWorker);
+
+            // act 
+            var (providerWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchLastKnownLocationAsync(providerId, updatedProviderWorker);
+
+            // assert
+            Assert.NotNull(providerWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.OkUpdated, outcomeAction);
+            Assert.Null(error);
+
+            Assert.Equal(providerWorker.Id, providerWorkerResult.Id);
+            Assert.Equal(providerWorker.ProviderId, providerWorkerResult.ProviderId);
+            // we must test that only LastKnownLocation has changed
+            Assert.Equal(updatedProviderWorker.LastKnownLocation, providerWorkerResult.LastKnownLocation);
+            Assert.Equal(providerWorker.LastName, providerWorkerResult.LastName);
+            Assert.Equal(providerWorker.Name, providerWorkerResult.Name);
+            Assert.Equal(providerWorker.PhoneNumber, providerWorkerResult.PhoneNumber);
+            Assert.Equal(providerWorker.Status, providerWorkerResult.Status);
+            Assert.Equal(providerWorker.ProviderWorkerImageBucketKey?.Store, providerWorkerResult.ProviderWorkerImageBucketKey?.Store);
+            Assert.Equal(providerWorker.ProviderWorkerImageBucketKey?.Bucket, providerWorkerResult.ProviderWorkerImageBucketKey?.Bucket);
+
+            Assert.True(
+                _dataStore
+                    .TestProviderWorker(_ =>
+                        _.Id == providerWorker.Id &&
+                        _.ProviderId == providerWorker.ProviderId &&
+                        _.LastKnownLocation == updatedProviderWorker.LastKnownLocation &&
+                        _.LastName == providerWorker.LastName &&
+                        _.Name == providerWorker.Name &&
+                        _.PhoneNumber == providerWorker.PhoneNumber &&
+                        _.Status == providerWorker.Status));
+        }
+
+        [Fact]
+        public async Task TestPatchLastKnownLocationAsyncFailsToUpdateProviderWorkerWhenProviderDoesNotExist()
+        {
+            // arrange
+            var providerId = "0000ffff0000ffff0000ffff0000ffff";
+            var id = Guid.NewGuid().ToString("n");
+
+            var providerWorker = new ProviderWorker
+            {
+                Id = id,
+                ProviderId = providerId,
+                Name = "Homer",
+                LastName = "Simpson"
+            };
+
+            _dataStore.EnsureProviderDoesNotExist(providerId);
+
+            // act 
+            var (updateProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchLastKnownLocationAsync(providerId, providerWorker);
+
+            // assert
+            Assert.Null(updateProviderWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
+            Assert.NotNull(error);
+        }
+
+        [Fact]
+        public async Task TestPatchLastKnownLocationAsyncReturnsNullOnNonExistantProvider()
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = "0000ffff0000ffff0000ffff0000ffff";
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerWorker = new ProviderWorker
+            {
+                Id = id,
+                ProviderId = providerId,
+                Name = "Homer",
+                LastName = "Simpson"
+            };
+
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderWorkerDoesNotExist(providerId, id);
+
+            // act 
+            var (updateProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchLastKnownLocationAsync(providerId, providerWorker);
+
+            // assert
+            Assert.Null(updateProviderWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
+            Assert.Null(error);
+        }
     }
 }
