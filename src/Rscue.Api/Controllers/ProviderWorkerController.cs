@@ -1,38 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Auth0.ManagementApi;
-using Auth0.ManagementApi.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.WindowsAzure.Storage;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
-using Rscue.Api.Models;
-using Rscue.Api.Plumbing;
-using Rscue.Api.ViewModels;
-
-namespace Rscue.Api.Controllers
+﻿namespace Rscue.Api.Controllers
 {
+    using Extensions;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using MongoDB.Driver.Linq;
+    using Rscue.Api.Models;
+    using Rscue.Api.Plumbing;
+    using Rscue.Api.ViewModels;
+    using Rscue.Api.Services;
+    using Rscue.Api.BindingModels;
+    using Microsoft.AspNetCore.JsonPatch;
+
     [Authorize]
     [Route("provider/{providerId}/worker")]
     public class ProviderWorkerController : Controller
     {
-        private readonly IMongoDatabase _mongoDatabase;
-        private readonly Auth0Settings _auth0Settings;
-        private readonly AzureSettings _azureSettings;
-        private readonly IMongoCollection<Provider> _providerCollection;
+        private readonly IImageBucketRepository _imageBucketRepository;
+        private readonly IProviderWorkerRepository _providerWorkerRepository;
+        private readonly IUserService _userService;
 
-        public ProviderWorkerController(IMongoDatabase mongoDatabase, IOptions<Auth0Settings> appSettings,
-            IOptions<AzureSettings> azureSettings)
+        public ProviderWorkerController(IImageBucketRepository imageBucketRepository, IProviderWorkerRepository providerWorkerRepository, IUserService userService)
         {
-            _mongoDatabase = mongoDatabase;
-            _auth0Settings = appSettings.Value;
-            _azureSettings = azureSettings.Value;
-            _providerCollection = mongoDatabase.GetCollection<Provider>("providers");
+            _imageBucketRepository = imageBucketRepository ?? throw new ArgumentNullException(nameof(imageBucketRepository));
+            _providerWorkerRepository = providerWorkerRepository ?? throw new ArgumentNullException(nameof(providerWorkerRepository)); 
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         }
 
         [HttpPost]
@@ -41,135 +36,133 @@ namespace Rscue.Api.Controllers
         [ProducesResponseType(typeof(string), 400)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> AddWorker(string providerId, [FromBody] WorkerViewModel model)
+        public async Task<IActionResult> NewWorker(string providerId, [FromBody] ProviderWorkerBindingModel bindingModel)
         {
-            try
-            {
-                if (ModelState.IsValid)
-                {
-                    var provider = await _providerCollection.Find(x => x.Id == providerId).SingleOrDefaultAsync();
-                    if (provider == null)
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
+
+            var (imageBucket, outcomeAction, error) =
+                await _imageBucketRepository.NewImageBucket(
+                    new ImageBucket
                     {
-                        return await Task.FromResult(NotFound($"No existe un proveedor con el id {providerId}"));
-                    }
+                        StoreBucket = new ImageBucketKey { Store = Constants.WORKER_IMAGES_STORE },
+                        ImageList = new List<string>()
+                    });
 
-                    model.Id = await CreateAuth0User(model);
-                    var worker = new Worker
-                    {
-                        Id = model.Id,
-                        ProviderId = provider.Id,
-                        Name = model.Name,
-                        LastName = model.LastName,
-                        AvatarUri = model.AvatarUri,
-                        Email = model.Email,
-                        PhoneNumber = model.PhoneNumber
-                    };
-
-                    await _mongoDatabase.GetCollection<Worker>("workers").InsertOneAsync(worker);
-
-                    var uri = new Uri($"{Request.GetEncodedUrl()}/{model.Id}");
-                    return await Task.FromResult(Created(uri, model));
-                }
-
-                return await Task.FromResult(BadRequest(ModelState.GetErrors()));
-            }
-            catch (Exception ex)
+            if (outcomeAction != RepositoryOutcomeAction.OkCreated)
             {
-                return await Task.FromResult(BadRequest(ex.Message));
+                return this.StatusCode(500, error);
             }
-        }
 
-        private async Task<string> CreateAuth0User(WorkerViewModel model)
-        {
-            var client = new ManagementApiClient(_auth0Settings.ManagementUserToken,
-                new Uri($"https://{_auth0Settings.Domain}/api/v2"));
-            var userRequest = new UserCreateRequest
+            var providerWorker = new ProviderWorker
             {
-                Password = model.Password,
-                Connection = Auth0Settings.Connection,
-                FirstName = model.Name,
-                LastName = model.LastName,
-                Email = model.Email
+                Name = bindingModel.Name,
+                LastName = bindingModel.LastName,
+                Email = bindingModel.Email,
+                PhoneNumber = bindingModel.PhoneNumber,
+                ProviderWorkerImageBucketKey = imageBucket.StoreBucket
             };
 
-            var result = await client.Users.CreateAsync(userRequest);
-            return result.UserId;
+            (providerWorker, outcomeAction, error) = await _providerWorkerRepository.NewAsync(providerId, providerWorker);
+
+            var userRegistration = await _userService.RegisterUserAsync(
+                new UserRegistration
+                {
+                    ProviderId = providerId,
+                    WorkerId = providerWorker.Id,
+                    FirstName = bindingModel.Name,
+                    LastName = bindingModel.LastName,
+                    Email = bindingModel.Email,
+                    Password = bindingModel.Password
+                });
+
+            var location = this.Url.BuildGetProviderWorkerUrl(providerId, providerWorker?.Id);
+
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(providerWorker), location);
         }
 
-        
+        [HttpPut("{id}")]
+        [ProducesResponseType(typeof(void), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
+        public async Task<IActionResult> UpdateWorker(string providerId, string id, [FromBody] ProviderWorkerBindingModel model)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState.GetErrors());
 
-        [HttpGet]
+            var (result, outcomeAction, error) = 
+                await _providerWorkerRepository.PatchAllButProviderWorkerImageStoreAsync(
+                    providerId, 
+                    new ProviderWorker
+                    {
+                        Id = id,
+                        Email = model.Email,
+                        Name = model.Name,
+                        LastName = model.LastName,
+                        Status = model.Status,
+                        PhoneNumber = model.PhoneNumber,
+                        DeviceId = model.DeviceId,
+                        LastKnownLocation = model.LastKnownLocation.ToGeoJson2DGeographicCoordinates()
+                    });
+
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> PatchWorker(string providerId, string id, [FromBody]JsonPatchDocument<ProviderWorkerBindingModel> patch)
+        {
+            if (patch.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
+            if (patch.Operations.Count > 1 || patch.Operations.Any(_ => _.OperationType != Microsoft.AspNetCore.JsonPatch.Operations.OperationType.Replace || !_.path.Equals("/LastKnownLocation", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest("Only one Replace operation is supported over LastKnownLocation");
+            }
+
+            var (result, outcomeAction, error) =
+                await _providerWorkerRepository.PatchLastKnownLocationAsync(
+                    providerId, new ProviderWorker { Id = id, LastKnownLocation = ((GeoLocation)patch.Operations[0].value).ToGeoJson2DGeographicCoordinates() });
+
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));            
+        }
+
+
+        [HttpGet("{id}", Name = nameof(Constants.Routes.GET_PROVIDER_WORKER))]
+        [ProducesResponseType(typeof(WorkerViewModel), 200)]
+        [ProducesResponseType(typeof(string), 404)]
+        [ProducesResponseType(typeof(void), 500)]
+        public async Task<IActionResult> GetWorker(string providerId, string id)
+        {
+            var (result, outcomeAction, error) = await _providerWorkerRepository.GetByIdAsync(providerId, id);
+            
+            return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));
+        }
+
+        [HttpGet(Name = nameof(Constants.Routes.GET_PROVIDER_WORKERS))]
         [ProducesResponseType(typeof(IEnumerable<WorkerViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<WorkerStatus> status)
+        public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<ProviderWorkerStatus> status)
         {
-            var collection = _mongoDatabase.GetCollection<Worker>("workers");
-            var models = collection.AsQueryable().Where(x => x.ProviderId == providerId);
+            var (result, outcomeAction, error) = await _providerWorkerRepository.GetAllAsync(providerId);
 
-            if (status.Any())
-            {
-                models = models.Where(x => status.Contains(x.Status));
-            }
+            var resultVM = result
+                .Where(_ => status.Contains(_.Status))
+                .Select(MapToProviderWorkerViewModel);
 
-            if (!await models.AnyAsync())
-            {
-                return await Task.FromResult(NotFound("No hay resultados"));
-            }
-
-            var list = await models.ToListAsync();
-            var ret = new List<WorkerViewModel>();
-            foreach (var worker in list)
-            {
-                ret.Add(new WorkerViewModel
-                {
-                    Id = worker.Id,
-                    Name = worker.Name,
-                    LastName = worker.LastName,
-                    PhoneNumber = worker.PhoneNumber,
-                    AvatarUri = worker.AvatarUri,
-                    Email = worker.Email,
-                    DeviceId = worker.DeviceId,
-                    Location = worker.Location == null ? null : new LocationViewModel { Latitude = worker.Location.Latitude, Longitude = worker.Location.Longitude },
-                    Status = worker.Status
-                });
-            }
-            return await Task.FromResult(Ok(ret));
+            return this.FromRepositoryOutcome(outcomeAction, error, resultVM);
         }
 
-        
-
-        [Route("{id}/profilepic")]
-        [HttpPost]
-        [ProducesResponseType(typeof(string), 200)]
-        [ProducesResponseType(typeof(string), 404)]
-        [ProducesResponseType(typeof(void), 500)]
-        public async Task<IActionResult> UpdateProfilePicture(string providerId, string id,
-            [FromBody] AvatarViewModel avatar)
-        {
-            var provider = await _mongoDatabase.GetCollection<Worker>("workers")
-                        .Find(x => x.Id == id && x.ProviderId == providerId)
-                        .SingleOrDefaultAsync();
-            if (provider == null)
-            {
-                return await Task.FromResult(NotFound($"No existe un trabajador con id {id} y proveedor id {providerId}"));
-            }
-
-            var dataImage = avatar.ImageBase64.Split(',');
-            var imageBytes = Convert.FromBase64String(dataImage[1]);
-            var mimeString = dataImage[0].Split(':')[1].Split(';')[0];
-            var extension = mimeString.Split('/')[1];
-            var imageName = $"{id}.{extension}".Replace("|", "");
-            var cloudStorageAccount = CloudStorageAccount.Parse(_azureSettings.StorageConnectionString);
-            var blobClient = cloudStorageAccount.CreateCloudBlobClient();
-            var blobContainer = blobClient.GetContainerReference("profilepics");
-            var blockBlob = blobContainer.GetBlockBlobReference(imageName);
-            await blockBlob.UploadFromByteArrayAsync(imageBytes, 0, imageBytes.Length);
-
-            var updateDefinitition = new UpdateDefinitionBuilder<Worker>().Set(x => x.AvatarUri, blockBlob.Uri);
-            await _mongoDatabase.GetCollection<Worker>("workers").UpdateOneAsync(x => x.Id == id, updateDefinitition);
-
-            return await Task.FromResult(Ok(blockBlob.Uri));
-        }        
+        private WorkerViewModel MapToProviderWorkerViewModel(ProviderWorker providerWorker) =>
+            providerWorker != null
+                ? new WorkerViewModel
+                {
+                    Name = providerWorker.Name,
+                    LastName = providerWorker.LastName,
+                    Email = providerWorker.Email,
+                    LastKnownLocation = providerWorker.LastKnownLocation.ToGeoLocation(),
+                    PhoneNumber = providerWorker.PhoneNumber,
+                    Status = providerWorker.Status,
+                    ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker.ProviderWorkerImageBucketKey?.Store, providerWorker.ProviderWorkerImageBucketKey.Bucket, "profilepicture"),
+                    DeviceId = providerWorker.DeviceId
+                }
+                : null;
     }
 }

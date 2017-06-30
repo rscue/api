@@ -54,7 +54,7 @@ namespace Rscue.Api.Models
         public TimeSpan? EstimatedTimeOfArrival { get; set; }
 
         [BsonIgnore]
-        public Worker Worker { get; set; }
+        public ProviderWorker Worker { get; set; }
 
         [BsonIgnore]
         public Client Client { get; set; }

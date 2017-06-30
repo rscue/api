@@ -9,7 +9,7 @@
 
         public static IMongoCollection<Client> Clients(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Client>("clients");
 
-        public static IMongoCollection<Worker> Workers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Worker>("workers");
+        public static IMongoCollection<ProviderWorker> Workers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<ProviderWorker>("workers");
 
         public static IMongoCollection<Provider> Providers(this IMongoDatabase mongoDatabase) => mongoDatabase.GetCollection<Provider>("providers");
 

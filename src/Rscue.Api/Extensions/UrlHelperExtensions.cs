@@ -38,8 +38,15 @@ namespace Rscue.Api.Extensions
                 ? urlHelper.Link(Constants.Routes.GET_PROVIDER_BOATTOWS, BuildGetProviderBoatTowsRouteValues(providerId))
                 : null;
 
-        public static string BuildGetProviderProfilePictureUrl(this IUrlHelper urlHelper, string store, string bucket) =>
-            BuildGetImageUrl(urlHelper, store, bucket, "profilepicture");
+        public static string BuildGetProviderWorkerUrl(this IUrlHelper urlHelper, string providerId, string id) =>
+            urlHelper != null && providerId != null && id != null
+                ? urlHelper.Link(Constants.Routes.GET_PROVIDER_WORKER, BuildGetProviderWorkerRouteValues(providerId, id))
+                : null;
+
+        public static string BuildGetProviderWorkersUrl(this IUrlHelper urlHelper, string providerId) =>
+            urlHelper != null && providerId != null
+                ? urlHelper.Link(Constants.Routes.GET_PROVIDER_WORKERS, BuildGetProviderWorkersRouteValues(providerId))
+                : null;
 
         private static object BuildGetImageRouteValues(string store, string bucket, string name) =>
             store != null && bucket != null && name != null
@@ -56,6 +63,10 @@ namespace Rscue.Api.Extensions
                 : null;
 
         private static object BuildGetProviderBoatTowsRouteValues(string providerId) => new { providerId };
+
+        private static object BuildGetProviderWorkerRouteValues(string providerId, string id) => new { providerId, id };
+
+        private static object BuildGetProviderWorkersRouteValues(string providerId) => new { providerId };
 
     }
 }

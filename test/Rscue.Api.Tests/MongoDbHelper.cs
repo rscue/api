@@ -10,7 +10,7 @@ namespace Rscue.Api.Tests
     {
         public static IMongoDatabase GetRscueCenterUnitTestDatabase()
         {
-            var mongoUrl = "mongodb://rscue:AG4JgMNVpllX7vJF@unit-test-shard-00-00-5mmof.mongodb.net:27017,unit-test-shard-00-01-5mmof.mongodb.net:27017,unit-test-shard-00-02-5mmof.mongodb.net:27017/RscueCenter?ssl=true&replicaSet=unit-test-shard-0&authSource=admin";
+            var mongoUrl = Environment.GetEnvironmentVariable("RSCUE_API_MongoDb__Url");
             var mongoDatabase = "RscueCenter";
             var client = new MongoClient(mongoUrl);
             var database = client.GetDatabase(mongoDatabase);

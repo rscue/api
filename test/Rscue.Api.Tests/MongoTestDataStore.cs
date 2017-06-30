@@ -75,7 +75,17 @@
             _mongoDatabase.Providers().DeleteOne(_ => _.Id == providerId);
         }
 
-        public void EnsureWorker(Worker worker)
+        public void EnsureProviderWorker(ProviderWorker providerWorker)
+        {
+            _mongoDatabase.Workers().InsertOne(providerWorker);
+        }
+
+        public void EnsureProviderWorkerDoesNotExist(string providerId, string id)
+        {
+            _mongoDatabase.Workers().DeleteOne(_ => _.Id == id && _.ProviderId == id);
+        }
+
+        public void EnsureWorker(ProviderWorker worker)
         {
             _mongoDatabase.Workers().InsertOne(worker);
         }
@@ -98,6 +108,11 @@
         public bool TestProviderBoatTow(Expression<Func<ProviderBoatTow, bool>> filter)
         {
             return _mongoDatabase.BoatTows().Find(filter).SingleOrDefault() != null;
+        }
+
+        public bool TestProviderWorker(Expression<Func<ProviderWorker, bool>> filter)
+        {
+            return _mongoDatabase.Workers().Find(filter).SingleOrDefault() != null;
         }
     }
 }

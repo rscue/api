@@ -76,10 +76,10 @@
             _dataStore.EnsureProviderDoesNotExist(providerId);
 
             // act 
-            var (providerResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
+            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
 
             // assert
-            Assert.Null(providerResult);
+            Assert.Null(providerBoatTowResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
@@ -104,13 +104,13 @@
             };
 
             _dataStore.EnsureProvider(provider);
-            _dataStore.EnsureProviderDoesNotExist(id);
+            _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
 
             // act 
-            var (providerResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
+            var (providerBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.GetByIdAsync(providerId, id);
 
             // assert
-            Assert.Null(providerResult);
+            Assert.Null(providerBoatTowResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }
@@ -275,10 +275,10 @@
             _dataStore.EnsureProviderDoesNotExist(providerId);
 
             // act 
-            var (updateProvider, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+            var (updateProviderBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
 
             // assert
-            Assert.Null(updateProvider);
+            Assert.Null(updateProviderBoatTowResult);
             Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
             Assert.NotNull(error);
         }
@@ -313,10 +313,10 @@
             _dataStore.EnsureProviderBoatTowDoesNotExist(providerId, id);
 
             // act 
-            var (updateProvider, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
+            var (updateProviderBoatTowResult, outcomeAction, error) = await _providerBoatTowRepository.UpdateAsync(providerId, providerBoatTow);
 
             // assert
-            Assert.Null(updateProvider);
+            Assert.Null(updateProviderBoatTowResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }

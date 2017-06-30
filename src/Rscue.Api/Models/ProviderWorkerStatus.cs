@@ -1,6 +1,6 @@
 ﻿namespace Rscue.Api.Models
 {
-    public enum WorkerStatus
+    public enum ProviderWorkerStatus
     {
         Idle = 1,
         Working = 2,

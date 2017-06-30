@@ -164,7 +164,7 @@
 
             var tasks = new Task[] { Task.CompletedTask, Task.CompletedTask };
             var clients = (Dictionary<string, Client>)null;
-            var workers = (Dictionary<string, Worker>)null;
+            var workers = (Dictionary<string, ProviderWorker>)null;
 
             var output = await assignments.ToListAsync();
             if (populateClient)
@@ -190,7 +190,7 @@
             }
             else
             {
-                workers = new Dictionary<string, Worker>();
+                workers = new Dictionary<string, ProviderWorker>();
             }
 
             await Task.WhenAll(tasks);

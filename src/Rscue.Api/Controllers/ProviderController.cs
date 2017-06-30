@@ -119,7 +119,7 @@
                     City = provider.City,
                     ZipCode = provider.ZipCode,
                     Address = provider.Address,
-                    ProfilePictureUrl = Url.BuildGetProviderProfilePictureUrl(provider.ProviderImageBucketKey?.Store, provider.ProviderImageBucketKey.Bucket),
+                    ProfilePictureUrl = Url.BuildGetImageUrl(provider.ProviderImageBucketKey?.Store, provider.ProviderImageBucketKey.Bucket, "profilepicture"),
                     ProviderBoatTowsUrl = Url.BuildGetProviderBoatTowsUrl(provider.Id)
                 }
                 : null;
