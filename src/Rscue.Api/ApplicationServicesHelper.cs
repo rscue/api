@@ -21,6 +21,7 @@
             services.AddTransient<IProviderBoatTowRepository, ProviderBoatTowRepository>();
             services.AddTransient<IUserIdProvider, HubUserIdProvider>();
             services.AddTransient<IProviderWorkerRepository, ProviderWorkerRepository>();
+            services.AddTransient<IUserService, UserService>();
         }
     }
 }

@@ -14,6 +14,7 @@
     using Rscue.Api.Services;
     using Rscue.Api.BindingModels;
     using Microsoft.AspNetCore.JsonPatch;
+    using Auth0.Core.Exceptions;
 
     [Authorize]
     [Route("provider/{providerId}/worker")]
@@ -64,16 +65,23 @@
 
             (providerWorker, outcomeAction, error) = await _providerWorkerRepository.NewAsync(providerId, providerWorker);
 
-            var userRegistration = await _userService.RegisterUserAsync(
-                new UserRegistration
-                {
-                    ProviderId = providerId,
-                    WorkerId = providerWorker.Id,
-                    FirstName = bindingModel.Name,
-                    LastName = bindingModel.LastName,
-                    Email = bindingModel.Email,
-                    Password = bindingModel.Password
-                });
+            try
+            {
+                var userRegistration = await _userService.RegisterUserAsync(
+                    new UserRegistration
+                    {
+                        ProviderId = providerId,
+                        WorkerId = providerWorker.Id,
+                        FirstName = bindingModel.Name,
+                        LastName = bindingModel.LastName,
+                        Email = bindingModel.Email,
+                        Password = bindingModel.Password,
+                    });
+            }
+            catch (ApiException ex)
+            {
+                return BadRequest(ex.ApiError);
+            }
 
             var location = this.Url.BuildGetProviderWorkerUrl(providerId, providerWorker?.Id);
 
@@ -124,7 +132,7 @@
         }
 
 
-        [HttpGet("{id}", Name = nameof(Constants.Routes.GET_PROVIDER_WORKER))]
+        [HttpGet("{id}", Name = Constants.Routes.GET_PROVIDER_WORKER)]
         [ProducesResponseType(typeof(WorkerViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
@@ -135,7 +143,7 @@
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));
         }
 
-        [HttpGet(Name = nameof(Constants.Routes.GET_PROVIDER_WORKERS))]
+        [HttpGet(Name = Constants.Routes.GET_PROVIDER_WORKERS)]
         [ProducesResponseType(typeof(IEnumerable<WorkerViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]

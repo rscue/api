@@ -9,6 +9,7 @@
     using Rscue.Api.Plumbing;
     using Auth0.ManagementApi;
     using Auth0.ManagementApi.Models;
+    using System.Dynamic;
 
     public class UserService : IUserService
     {
@@ -26,27 +27,29 @@
             var client = new ManagementApiClient(_auth0Settings.Value.ManagementUserToken, new Uri($"https://{domain}/api/v2"));
             var userRequest = new UserCreateRequest
             {
+                FullName = $"{userRegistration.FirstName} {userRegistration.LastName}",
                 Email = userRegistration.Email,
                 Password = userRegistration.Password,
                 Connection = Auth0Settings.Connection,
                 FirstName = userRegistration.FirstName,
                 LastName = userRegistration.LastName,
+                EmailVerified = true,
+                UserMetadata = new ExpandoObject(),
             };
 
-            userRequest.AppMetadata.IsAdmin = userRegistration.IsAdmin;
-            if (userRegistration.ProviderId == null)
+            if (userRegistration.ProviderId != null)
             {
-                userRequest.AppMetadata.ProviderId = userRegistration.ProviderId;
+                userRequest.UserMetadata.api_provider_id = userRegistration.ProviderId;
             }
 
-            if (userRegistration.ClientId == null)
+            if (userRegistration.ClientId != null)
             {
-                userRequest.AppMetadata.ClientId = userRegistration.ClientId;
+                userRequest.UserMetadata.api_client_id = userRegistration.ClientId;
             }
 
-            if (userRegistration.WorkerId == null)
+            if (userRegistration.WorkerId != null)
             {
-                userRequest.AppMetadata.WorkerId = userRegistration.WorkerId;
+                userRequest.UserMetadata.api_worker_id = userRegistration.WorkerId;
             }
 
             var result = await client.Users.CreateAsync(userRequest);
