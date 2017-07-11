@@ -19,7 +19,7 @@
     {
         private readonly IProviderBoatTowRepository _providerBoatTowRepository;
 
-        public ProviderBoatTowController(ProviderBoatTowRepository providerBoatTowRepository)
+        public ProviderBoatTowController(IProviderBoatTowRepository providerBoatTowRepository)
         {
             _providerBoatTowRepository = providerBoatTowRepository ?? throw new ArgumentNullException(nameof(providerBoatTowRepository));
         }
