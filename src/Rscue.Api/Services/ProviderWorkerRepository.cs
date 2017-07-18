@@ -99,6 +99,7 @@
         {
             if (providerId == null) throw new ArgumentNullException(nameof(providerId));
             if (id == null) throw new ArgumentNullException(nameof(id));
+            if (providerWorkerPatch == null) throw new ArgumentNullException(nameof(providerWorkerPatch));
 
             var providerExists = await(await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
             if (!providerExists)
