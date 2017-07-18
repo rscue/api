@@ -1,4 +1,4 @@
-﻿namespace Rscue.Api.Services
+namespace Rscue.Api.Services
 {
     using Extensions;
     using MongoDB.Driver;
@@ -107,13 +107,18 @@
                 return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
             }
 
+            if (providerWorkerPatch.Operations.Count == 0)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Empty patch", data = new { providerId, id } });
+            }
+
             var updateDefinition = (UpdateDefinition<ProviderWorker>)null;
             for (int i = 0; i < providerWorkerPatch.Operations.Count; i++)
             {
                 var operation = providerWorkerPatch.Operations[i];
                 if (operation.OperationType != OperationType.Replace)
                 {
-                    return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Incorrect patch specification", data = new { providerId, id } });
+                    return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Incorrect patch operation, only replace is supported", data = new { providerId, id } });
                 }
 
                 var fieldName = operation.path.Substring(1);

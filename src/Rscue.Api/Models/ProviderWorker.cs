@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using Rscue.Api.Models;
+using System.Collections.Generic;
 
 namespace Rscue.Api.Models
 {
@@ -38,9 +39,12 @@ namespace Rscue.Api.Models
         public ImageBucketKey ProviderWorkerImageBucketKey { get; set; }
 
         [BsonElement]
-        public GeoJson2DGeographicCoordinates LastKnownLocation { get; set; }
+        public GeoLocation LastKnownLocation { get; set; }
 
         [BsonElement]
         public ProviderWorkerStatus Status { get; set; }
+
+        [BsonExtraElements]
+        public IDictionary<string, object> ExtraElements { get; set; }
     }
 }

@@ -110,7 +110,7 @@
                         Status = model.Status,
                         PhoneNumber = model.PhoneNumber,
                         DeviceId = model.DeviceId,
-                        LastKnownLocation = model.LastKnownLocation.ToGeoJson2DGeographicCoordinates()
+                        LastKnownLocation = model.LastKnownLocation
                     });
 
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));
@@ -167,7 +167,7 @@
                     Name = providerWorker.Name,
                     LastName = providerWorker.LastName,
                     Email = providerWorker.Email,
-                    LastKnownLocation = providerWorker.LastKnownLocation.ToGeoLocation(),
+                    LastKnownLocation = providerWorker.LastKnownLocation,
                     PhoneNumber = providerWorker.PhoneNumber,
                     Status = providerWorker.Status,
                     ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker.ProviderWorkerImageBucketKey?.Store, providerWorker.ProviderWorkerImageBucketKey.Bucket, "profilepicture"),
