@@ -170,7 +170,7 @@
                     LastKnownLocation = providerWorker.LastKnownLocation,
                     PhoneNumber = providerWorker.PhoneNumber,
                     Status = providerWorker.Status,
-                    ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker.ProviderWorkerImageBucketKey?.Store, providerWorker.ProviderWorkerImageBucketKey.Bucket, "profilepicture"),
+                    ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker?.ProviderWorkerImageBucketKey?.Store, providerWorker?.ProviderWorkerImageBucketKey?.Bucket, "profilepicture"),
                     DeviceId = providerWorker.DeviceId
                 }
                 : null;
