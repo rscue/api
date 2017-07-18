@@ -2,9 +2,11 @@
 {
     using Rscue.Api.Models;
 
-    public class WorkerViewModel
+    public class ProviderWorkerViewModel
     {
         public string Id { get; set; }
+
+        public string ProviderId { get; set; }
 
         public string Name { get; set; }
 

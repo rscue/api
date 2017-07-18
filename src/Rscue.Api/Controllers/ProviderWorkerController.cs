@@ -33,7 +33,7 @@
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(WorkerViewModel), 201)]
+        [ProducesResponseType(typeof(ProviderWorkerViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 400)]
         [ProducesResponseType(typeof(string), 404)]
@@ -135,7 +135,7 @@
         }
 
         [HttpGet("{id}", Name = Constants.Routes.GET_PROVIDER_WORKER)]
-        [ProducesResponseType(typeof(WorkerViewModel), 200)]
+        [ProducesResponseType(typeof(ProviderWorkerViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetWorker(string providerId, string id)
@@ -146,7 +146,7 @@
         }
 
         [HttpGet(Name = Constants.Routes.GET_PROVIDER_WORKERS)]
-        [ProducesResponseType(typeof(IEnumerable<WorkerViewModel>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ProviderWorkerViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<ProviderWorkerStatus> status)
@@ -160,10 +160,12 @@
             return this.FromRepositoryOutcome(outcomeAction, error, resultVM);
         }
 
-        private WorkerViewModel MapToProviderWorkerViewModel(ProviderWorker providerWorker) =>
+        private ProviderWorkerViewModel MapToProviderWorkerViewModel(ProviderWorker providerWorker) =>
             providerWorker != null
-                ? new WorkerViewModel
+                ? new ProviderWorkerViewModel
                 {
+                    Id = providerWorker.Id,
+                    ProviderId = providerWorker.ProviderId,
                     Name = providerWorker.Name,
                     LastName = providerWorker.LastName,
                     Email = providerWorker.Email,
