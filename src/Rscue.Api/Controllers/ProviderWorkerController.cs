@@ -15,6 +15,7 @@
     using Rscue.Api.BindingModels;
     using Microsoft.AspNetCore.JsonPatch;
     using Auth0.Core.Exceptions;
+    using Microsoft.AspNetCore.JsonPatch.Operations;
 
     [Authorize]
     [Route("provider/{providerId}/worker")]
@@ -116,21 +117,22 @@
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchWorker(string providerId, string id, [FromBody]JsonPatchDocument<ProviderWorkerBindingModel> patch)
+        public async Task<IActionResult> PatchWorker(string providerId, string id, [FromBody]JsonPatchDocument<ProviderWorkerBindingModel> patchBindingModel)
         {
-            if (patch.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
-            if (patch.Operations.Count > 1 || patch.Operations.Any(_ => _.OperationType != Microsoft.AspNetCore.JsonPatch.Operations.OperationType.Replace || !_.path.Equals("/LastKnownLocation", StringComparison.OrdinalIgnoreCase)))
+            if (patchBindingModel.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
+
+            var patchModel = new JsonPatchDocument<ProviderWorker>();
+            for (int i = 0; i < patchBindingModel.Operations.Count; i++)
             {
-                return BadRequest("Only one Replace operation is supported over LastKnownLocation");
+                var operation = patchBindingModel.Operations[i];
+                patchModel.Operations.Add(
+                    new Operation<ProviderWorker>(operation.op, operation.path, operation.from, operation.value.ToModelType()));
             }
 
-            var (result, outcomeAction, error) =
-                await _providerWorkerRepository.PatchLastKnownLocationAsync(
-                    providerId, new ProviderWorker { Id = id, LastKnownLocation = ((GeoLocation)patch.Operations[0].value).ToGeoJson2DGeographicCoordinates() });
+            var (result, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, patchModel);
 
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));            
         }
-
 
         [HttpGet("{id}", Name = Constants.Routes.GET_PROVIDER_WORKER)]
         [ProducesResponseType(typeof(WorkerViewModel), 200)]
