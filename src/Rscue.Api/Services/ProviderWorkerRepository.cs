@@ -1,4 +1,4 @@
-namespace Rscue.Api.Services
+﻿namespace Rscue.Api.Services
 {
     using Extensions;
     using MongoDB.Driver;
@@ -9,6 +9,7 @@ namespace Rscue.Api.Services
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.JsonPatch;
     using Microsoft.AspNetCore.JsonPatch.Operations;
+    using System.Linq.Expressions;
 
     public class ProviderWorkerRepository : IProviderWorkerRepository
     {
@@ -124,11 +125,12 @@ namespace Rscue.Api.Services
                 var fieldName = operation.path.Substring(1);
                 if (i == 0)
                 {
-                    updateDefinition = new UpdateDefinitionBuilder<ProviderWorker>().Set(fieldName, operation.value);
+                    var builder = new UpdateDefinitionBuilder<ProviderWorker>();
+                    updateDefinition = MongoDatabaseExtensions.Set(builder, fieldName, operation.value);
                 }
                 else
                 {
-                    updateDefinition = updateDefinition.Set(fieldName, operation.value);
+                    updateDefinition = MongoDatabaseExtensions.Set(updateDefinition, fieldName, operation.value);
                 }
             }
 

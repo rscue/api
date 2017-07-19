@@ -16,6 +16,7 @@
     using Microsoft.AspNetCore.JsonPatch;
     using Auth0.Core.Exceptions;
     using Microsoft.AspNetCore.JsonPatch.Operations;
+    using System.Reflection;
 
     [Authorize]
     [Route("provider/{providerId}/worker")]
@@ -122,11 +123,13 @@
             if (patchBindingModel.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
 
             var patchModel = new JsonPatchDocument<ProviderWorker>();
+            var model = new ProviderWorkerBindingModel();
+            patchBindingModel.ApplyTo(model);
             for (int i = 0; i < patchBindingModel.Operations.Count; i++)
             {
                 var operation = patchBindingModel.Operations[i];
                 patchModel.Operations.Add(
-                    new Operation<ProviderWorker>(operation.op, operation.path, operation.from, operation.value.ToModelType()));
+                    new Operation<ProviderWorker>(operation.op, operation.path, operation.from, ReadValue(model, operation.path)));
             }
 
             var (result, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, patchModel);
@@ -176,5 +179,8 @@
                     DeviceId = providerWorker.DeviceId
                 }
                 : null;
+
+        private static object ReadValue(object obj, string path) =>
+            obj.GetType().GetProperty(path.Substring(1), BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public).GetValue(obj);
     }
 }
