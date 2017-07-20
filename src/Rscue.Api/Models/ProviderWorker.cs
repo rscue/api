@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using Rscue.Api.Models;
+using System.Collections.Generic;
 
 namespace Rscue.Api.Models
 {
@@ -42,5 +43,8 @@ namespace Rscue.Api.Models
 
         [BsonElement]
         public ProviderWorkerStatus Status { get; set; }
+
+        [BsonExtraElements]
+        public IDictionary<string, object> ExtraElements { get; set; }
     }
 }
