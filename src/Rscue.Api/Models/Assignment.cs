@@ -64,5 +64,8 @@ namespace Rscue.Api.Models
 
         [BsonIgnore]
         public ProviderBoatTow BoatTow { get; set; }
+
+        [BsonExtraElements]
+        public IDictionary<string, object> ExtraElements { get; set; }
     }
 }
