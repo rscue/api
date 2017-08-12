@@ -1,10 +1,15 @@
-﻿namespace Rscue.Api.Tests.Services
+namespace Rscue.Api.Tests.Services
 {
+    using Microsoft.AspNetCore.JsonPatch;
+    using Microsoft.AspNetCore.JsonPatch.Operations;
+    using Newtonsoft.Json.Serialization;
     using Rscue.Api.Models;
     using Rscue.Api.Services;
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Xunit;
+    using Xunit.Extensions;
 
     [Collection("ProviderWorkerRepository")]
     [Trait("DependsOn", "mongodb")]
@@ -13,12 +18,31 @@
         private readonly IProviderWorkerRepository _providerWorkerRepository;
         private ITestDataStore _dataStore;
 
+        public static IEnumerable<object[]> TestPatchAsyncPatchesProviderWorkerData
+        {
+            get
+            {
+                var contractResolver = new DefaultContractResolver();
+                JsonPatchDocument<ProviderWorker> documentFromOperations(params Operation<ProviderWorker>[] operations)
+                {
+                    return new JsonPatchDocument<ProviderWorker>(new List<Operation<ProviderWorker>>(operations), contractResolver);
+                }
+
+                yield return new object[] { documentFromOperations(new Operation<ProviderWorker> { op = "replace", path = "/Name", value = "Ned" }) };
+                yield return new object[] { documentFromOperations(new Operation<ProviderWorker> { op = "replace", path = "/LastName", value = "Flanders" }) };
+                yield return new object[] { documentFromOperations(new Operation<ProviderWorker> { op = "replace", path = "/LastKnownLocation", value = new GeoLocation { Longitude = -64.8, Latitude = -31 } }) };
+                yield return new object[] { documentFromOperations(new Operation<ProviderWorker> { op = "replace", path = "/Status", value = ProviderWorkerStatus.Working }) };
+            }
+        }
+
         public ProviderWorkerRepositoryTests()
         {
             var mongoDatabase = MongoDbHelper.GetRscueCenterUnitTestDatabase();
             _providerWorkerRepository = new ProviderWorkerRepository(mongoDatabase);
             _dataStore = new MongoTestDataStore(mongoDatabase);
         }
+
+
 
         [Fact]
         public async Task TestGetByIdAsyncCanRetrieveProviderWorker()
@@ -392,7 +416,7 @@
                         (
                             _.ProviderWorkerImageBucketKey != null &&
                             providerWorker.ProviderWorkerImageBucketKey != null &&
-                            _.ProviderWorkerImageBucketKey.Store == providerWorker.ProviderWorkerImageBucketKey.Store && 
+                            _.ProviderWorkerImageBucketKey.Store == providerWorker.ProviderWorkerImageBucketKey.Store &&
                             _.ProviderWorkerImageBucketKey.Bucket == providerWorker.ProviderWorkerImageBucketKey.Bucket
                         )));
         }
@@ -485,7 +509,7 @@
                 ProviderId = providerId,
                 Name = "Homer",
                 LastName = "Simpson",
-                LastKnownLocation = new MongoDB.Driver.GeoJsonObjectModel.GeoJson2DGeographicCoordinates(-67, 32)
+                LastKnownLocation = new GeoLocation { Longitude = -67, Latitude = 32 }
             };
 
             var updatedProviderWorker = new ProviderWorker
@@ -494,7 +518,7 @@
                 ProviderId = providerId,
                 Name = "Bart",
                 LastName = "Simpson",
-                LastKnownLocation = new MongoDB.Driver.GeoJsonObjectModel.GeoJson2DGeographicCoordinates(-68, 31)
+                LastKnownLocation = new GeoLocation { Longitude = -68, Latitude = 31 }
             };
 
             _dataStore.EnsureProvider(provider);
@@ -575,7 +599,7 @@
                 Address = "742 Evergreen Terrace",
             };
 
-            var providerWorker = new ProviderWorker
+            var providerWorker = new ProviderWorker 
             {
                 Id = id,
                 ProviderId = providerId,
@@ -591,6 +615,149 @@
 
             // assert
             Assert.Null(updateProviderWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
+            Assert.Null(error);
+        }
+
+        /////
+
+        [Theory]
+        [MemberData(nameof(TestPatchAsyncPatchesProviderWorkerData))]
+        public async Task TestPatchAsyncPatchesProviderWorker(JsonPatchDocument<ProviderWorker> providerWorkerPatch)
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = Guid.NewGuid().ToString("n");
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerWorker = new ProviderWorker
+            {
+                Id = id,
+                ProviderId = providerId,
+                Name = "Homer",
+                LastName = "Simpson",
+                LastKnownLocation = new GeoLocation { Longitude = -67, Latitude = 32 },
+                Status = ProviderWorkerStatus.Idle,
+            };
+
+            var expectedProviderWorker = new ProviderWorker
+            {
+                Id = providerWorker.Id,
+                ProviderId = providerWorker.ProviderId,
+                Name = providerWorker.Name,
+                LastName = providerWorker.LastName,
+                LastKnownLocation = providerWorker.LastKnownLocation,
+                Status = providerWorker.Status
+            };
+
+            providerWorkerPatch.ApplyTo(expectedProviderWorker);
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderWorker(providerWorker);
+
+            // act 
+            var (patchedProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, providerWorkerPatch);
+
+            // assert
+            Assert.NotNull(patchedProviderWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.OkUpdated, outcomeAction);
+            Assert.Null(error);
+
+            Assert.Equal(expectedProviderWorker.Id, patchedProviderWorkerResult.Id);
+            Assert.Equal(expectedProviderWorker.ProviderId, patchedProviderWorkerResult.ProviderId);
+            Assert.Equal(expectedProviderWorker.LastKnownLocation, patchedProviderWorkerResult.LastKnownLocation);
+            Assert.Equal(expectedProviderWorker.LastName, patchedProviderWorkerResult.LastName);
+            Assert.Equal(expectedProviderWorker.Name, patchedProviderWorkerResult.Name);
+            Assert.Equal(expectedProviderWorker.PhoneNumber, patchedProviderWorkerResult.PhoneNumber);
+            Assert.Equal(expectedProviderWorker.Status, patchedProviderWorkerResult.Status);
+            Assert.Equal(expectedProviderWorker.ProviderWorkerImageBucketKey?.Store, patchedProviderWorkerResult.ProviderWorkerImageBucketKey?.Store);
+            Assert.Equal(expectedProviderWorker.ProviderWorkerImageBucketKey?.Bucket, patchedProviderWorkerResult.ProviderWorkerImageBucketKey?.Bucket);
+
+            Assert.True(
+                _dataStore
+                    .TestProviderWorker(_ =>
+                        _.Id == expectedProviderWorker.Id &&
+                        _.ProviderId == expectedProviderWorker.ProviderId &&
+                        (
+                            (
+                                _.LastKnownLocation != null && 
+                                expectedProviderWorker.LastKnownLocation != null && 
+                                _.LastKnownLocation.Latitude == expectedProviderWorker.LastKnownLocation.Latitude &&
+                                _.LastKnownLocation.Longitude == expectedProviderWorker.LastKnownLocation.Longitude) || 
+                            (_.LastKnownLocation == null && expectedProviderWorker.LastKnownLocation == null)
+                        ) &&
+                        _.LastName == expectedProviderWorker.LastName &&
+                        _.Name == expectedProviderWorker.Name &&
+                        _.PhoneNumber == expectedProviderWorker.PhoneNumber &&
+                        _.Status == expectedProviderWorker.Status));
+        }
+
+        [Fact]
+        public async Task TestPatchAsyncFailsToUpdateProviderWorkerWhenProviderDoesNotExist()
+        {
+            // arrange
+            var providerId = "0000ffff0000ffff0000ffff0000ffff";
+            var id = Guid.NewGuid().ToString("n");
+            var providerWorkerPatch =
+                new JsonPatchDocument<ProviderWorker>(
+                    new List<Operation<ProviderWorker>>
+                    {
+                        new Operation<ProviderWorker> { path = "/lastname", op = "replace", value = "Bart" }
+                    }, new DefaultContractResolver());
+
+            _dataStore.EnsureProviderDoesNotExist(providerId);
+
+            // act 
+            var (patchProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, providerWorkerPatch);
+
+            // assert
+            Assert.Null(patchProviderWorkerResult);
+            Assert.Equal(RepositoryOutcomeAction.ValidationErrorNone, outcomeAction);
+            Assert.NotNull(error);
+        }
+
+        [Fact]
+        public async Task TestPatchAsyncReturnsNullOnNonExistantProvider()
+        {
+            // arrange
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = "0000ffff0000ffff0000ffff0000ffff";
+            var provider = new Provider
+            {
+                Id = providerId,
+                City = "Springfield",
+                State = "Illinois",
+                Name = "TowNow!",
+                Email = "call@townow.com",
+                ZipCode = "2342",
+                ProviderImageBucketKey = new ImageBucketKey { Store = "some-store", Bucket = Guid.NewGuid().ToString("n") },
+                Address = "742 Evergreen Terrace",
+            };
+
+            var providerWorkerPatch =
+                new JsonPatchDocument<ProviderWorker>(
+                    new List<Operation<ProviderWorker>>
+                    {
+                        new Operation<ProviderWorker> { path = "/lastname", op = "replace", value = "Bart" }
+                    }, new DefaultContractResolver());
+
+            _dataStore.EnsureProvider(provider);
+            _dataStore.EnsureProviderWorkerDoesNotExist(providerId, id);
+
+            // act 
+            var (patchProviderWorkerResult, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, providerWorkerPatch);
+
+            // assert
+            Assert.Null(patchProviderWorkerResult);
             Assert.Equal(RepositoryOutcomeAction.NotFoundNone, outcomeAction);
             Assert.Null(error);
         }

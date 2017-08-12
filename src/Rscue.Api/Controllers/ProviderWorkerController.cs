@@ -15,6 +15,8 @@
     using Rscue.Api.BindingModels;
     using Microsoft.AspNetCore.JsonPatch;
     using Auth0.Core.Exceptions;
+    using Microsoft.AspNetCore.JsonPatch.Operations;
+    using System.Reflection;
 
     [Authorize]
     [Route("provider/{providerId}/worker")]
@@ -32,7 +34,7 @@
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(WorkerViewModel), 201)]
+        [ProducesResponseType(typeof(ProviderWorkerViewModel), 201)]
         [ProducesResponseType(typeof(IEnumerable<ErrorViewModel>), 400)]
         [ProducesResponseType(typeof(string), 400)]
         [ProducesResponseType(typeof(string), 404)]
@@ -109,31 +111,34 @@
                         Status = model.Status,
                         PhoneNumber = model.PhoneNumber,
                         DeviceId = model.DeviceId,
-                        LastKnownLocation = model.LastKnownLocation.ToGeoJson2DGeographicCoordinates()
+                        LastKnownLocation = model.LastKnownLocation
                     });
 
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));
         }
 
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchWorker(string providerId, string id, [FromBody]JsonPatchDocument<ProviderWorkerBindingModel> patch)
+        public async Task<IActionResult> PatchWorker(string providerId, string id, [FromBody]JsonPatchDocument<ProviderWorkerBindingModel> patchBindingModel)
         {
-            if (patch.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
-            if (patch.Operations.Count > 1 || patch.Operations.Any(_ => _.OperationType != Microsoft.AspNetCore.JsonPatch.Operations.OperationType.Replace || !_.path.Equals("/LastKnownLocation", StringComparison.OrdinalIgnoreCase)))
+            if (patchBindingModel.Operations.Count == 0) return BadRequest("Must indicate operations to perform");
+
+            var patchModel = new JsonPatchDocument<ProviderWorker>();
+            var model = new ProviderWorkerBindingModel();
+            patchBindingModel.ApplyTo(model);
+            for (int i = 0; i < patchBindingModel.Operations.Count; i++)
             {
-                return BadRequest("Only one Replace operation is supported over LastKnownLocation");
+                var operation = patchBindingModel.Operations[i];
+                patchModel.Operations.Add(
+                    new Operation<ProviderWorker>(operation.op, operation.path, operation.from, ReadValue(model, operation.path)));
             }
 
-            var (result, outcomeAction, error) =
-                await _providerWorkerRepository.PatchLastKnownLocationAsync(
-                    providerId, new ProviderWorker { Id = id, LastKnownLocation = ((GeoLocation)patch.Operations[0].value).ToGeoJson2DGeographicCoordinates() });
+            var (result, outcomeAction, error) = await _providerWorkerRepository.PatchAsync(providerId, id, patchModel);
 
             return this.FromRepositoryOutcome(outcomeAction, error, MapToProviderWorkerViewModel(result));            
         }
 
-
         [HttpGet("{id}", Name = Constants.Routes.GET_PROVIDER_WORKER)]
-        [ProducesResponseType(typeof(WorkerViewModel), 200)]
+        [ProducesResponseType(typeof(ProviderWorkerViewModel), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetWorker(string providerId, string id)
@@ -144,7 +149,7 @@
         }
 
         [HttpGet(Name = Constants.Routes.GET_PROVIDER_WORKERS)]
-        [ProducesResponseType(typeof(IEnumerable<WorkerViewModel>), 200)]
+        [ProducesResponseType(typeof(IEnumerable<ProviderWorkerViewModel>), 200)]
         [ProducesResponseType(typeof(string), 404)]
         [ProducesResponseType(typeof(void), 500)]
         public async Task<IActionResult> GetWorkers(string providerId, [FromQuery] IEnumerable<ProviderWorkerStatus> status)
@@ -158,19 +163,24 @@
             return this.FromRepositoryOutcome(outcomeAction, error, resultVM);
         }
 
-        private WorkerViewModel MapToProviderWorkerViewModel(ProviderWorker providerWorker) =>
+        private ProviderWorkerViewModel MapToProviderWorkerViewModel(ProviderWorker providerWorker) =>
             providerWorker != null
-                ? new WorkerViewModel
+                ? new ProviderWorkerViewModel
                 {
+                    Id = providerWorker.Id,
+                    ProviderId = providerWorker.ProviderId,
                     Name = providerWorker.Name,
                     LastName = providerWorker.LastName,
                     Email = providerWorker.Email,
-                    LastKnownLocation = providerWorker.LastKnownLocation.ToGeoLocation(),
+                    LastKnownLocation = providerWorker.LastKnownLocation,
                     PhoneNumber = providerWorker.PhoneNumber,
                     Status = providerWorker.Status,
-                    ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker.ProviderWorkerImageBucketKey?.Store, providerWorker.ProviderWorkerImageBucketKey.Bucket, "profilepicture"),
+                    ProfilePictureUrl = Url.BuildGetImageUrl(providerWorker?.ProviderWorkerImageBucketKey?.Store, providerWorker?.ProviderWorkerImageBucketKey?.Bucket, "profilepicture"),
                     DeviceId = providerWorker.DeviceId
                 }
                 : null;
+
+        private static object ReadValue(object obj, string path) =>
+            obj.GetType().GetProperty(path.Substring(1), BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public).GetValue(obj);
     }
 }

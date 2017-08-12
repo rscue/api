@@ -182,5 +182,50 @@
             // assert
             await Assert.ThrowsAsync<ArgumentNullException>(testCode);
         }
+
+        [Fact]
+        public async Task PatchAsyncShouldThrowArgumentNullExceptionOnNullProviderId()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var id = Guid.NewGuid().ToString("n");
+            var providerWorkerPatch = new Microsoft.AspNetCore.JsonPatch.JsonPatchDocument<ProviderWorker>();
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchAsync(null, id, providerWorkerPatch));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>("providerId", testCode);
+        }
+
+        [Fact]
+        public async Task PatchAyncShouldThrowArgumentNullExceptionOnNullId()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerId = Guid.NewGuid().ToString("n");
+            var providerWorkerPatch = new Microsoft.AspNetCore.JsonPatch.JsonPatchDocument<ProviderWorker>();
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchAsync(providerId, null, providerWorkerPatch));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>("id", testCode);
+        }
+
+        [Fact]
+        public async Task PatchAyncShouldThrowArgumentNullExceptionOnNullProviderWorkerPatch()
+        {
+            // arrange
+            var providerWorkerRepository = new ProviderWorkerRepository(_mongoDatabase);
+            var providerId = Guid.NewGuid().ToString("n");
+            var id = Guid.NewGuid().ToString("n");
+
+            // act (deferred)
+            var testCode = (Func<Task>)(async () => await providerWorkerRepository.PatchAsync(providerId, id, null));
+
+            // assert
+            await Assert.ThrowsAsync<ArgumentNullException>("providerWorkerPatch", testCode);
+        }
     }
 }

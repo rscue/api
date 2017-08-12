@@ -5,6 +5,13 @@
 
     public static class DataMappingExtensions
     {
+        public static object ToModelType(this object value) =>
+            value != null
+                ? value is GeoJson2DGeographicCoordinates
+                    ? ((GeoLocation)value).ToGeoJson2DGeographicCoordinates()
+                    : value
+                : null;
+
         public static GeoJson2DGeographicCoordinates ToGeoJson2DGeographicCoordinates(this GeoLocation geoLocation) =>
             geoLocation != null
                 ? new GeoJson2DGeographicCoordinates(geoLocation.Longitude, geoLocation.Latitude)

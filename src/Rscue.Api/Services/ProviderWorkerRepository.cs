@@ -7,6 +7,9 @@
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.JsonPatch;
+    using Microsoft.AspNetCore.JsonPatch.Operations;
+    using System.Linq.Expressions;
 
     public class ProviderWorkerRepository : IProviderWorkerRepository
     {
@@ -86,6 +89,59 @@
                             .Set(_ => _.LastKnownLocation, providerWorker.LastKnownLocation)
                             .Set(_ => _.PhoneNumber, providerWorker.PhoneNumber)
                             .Set(_ => _.Status, providerWorker.Status),
+                        new FindOneAndUpdateOptions<ProviderWorker>() { ReturnDocument = ReturnDocument.After },
+                        cancellationToken);
+
+            var outcomeAction = result != null ? RepositoryOutcomeAction.OkUpdated : RepositoryOutcomeAction.NotFoundNone;
+            return (result, outcomeAction, null);
+        }
+
+        public async Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchAsync(string providerId, string id, JsonPatchDocument<ProviderWorker> providerWorkerPatch, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (providerId == null) throw new ArgumentNullException(nameof(providerId));
+            if (id == null) throw new ArgumentNullException(nameof(id));
+            if (providerWorkerPatch == null) throw new ArgumentNullException(nameof(providerWorkerPatch));
+
+            var providerExists = await(await _mongoDatabase.Providers().FindAsync(_ => _.Id == providerId, cancellationToken: cancellationToken)).AnyAsync(cancellationToken);
+            if (!providerExists)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Missing Provider", data = providerId });
+            }
+
+            if (providerWorkerPatch.Operations.Count == 0)
+            {
+                return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Empty patch", data = new { providerId, id } });
+            }
+
+            var updateDefinition = (UpdateDefinition<ProviderWorker>)null;
+            for (int i = 0; i < providerWorkerPatch.Operations.Count; i++)
+            {
+                var operation = providerWorkerPatch.Operations[i];
+                if (operation.OperationType != OperationType.Replace)
+                {
+                    return (null, RepositoryOutcomeAction.ValidationErrorNone, new { cause = "Incorrect patch operation, only replace is supported", data = new { providerId, id } });
+                }
+
+                var fieldName = operation.path.Substring(1);
+                if (i == 0)
+                {
+                    var builder = new UpdateDefinitionBuilder<ProviderWorker>();
+                    updateDefinition = MongoDatabaseExtensions.Set(builder, fieldName, operation.value);
+                }
+                else
+                {
+                    updateDefinition = MongoDatabaseExtensions.Set(updateDefinition, fieldName, operation.value);
+                }
+            }
+
+            var result =
+                await _mongoDatabase.Workers()
+                    .FindOneAndUpdateAsync(
+                        new FilterDefinitionBuilder<ProviderWorker>()
+                            .And(
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.ProviderId, providerId),
+                                new FilterDefinitionBuilder<ProviderWorker>().Eq(_ => _.Id, id)),
+                        updateDefinition,
                         new FindOneAndUpdateOptions<ProviderWorker>() { ReturnDocument = ReturnDocument.After },
                         cancellationToken);
 

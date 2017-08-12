@@ -1,5 +1,6 @@
 ﻿namespace Rscue.Api.Services
 {
+    using Microsoft.AspNetCore.JsonPatch;
     using Rscue.Api.Models;
     using System.Collections.Generic;
     using System.Threading;
@@ -18,5 +19,7 @@
         Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchAllButProviderWorkerImageStoreAsync(string providerId, ProviderWorker providerWorker, CancellationToken cancellationToken = default(CancellationToken));
 
         Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchLastKnownLocationAsync(string providerId, ProviderWorker providerWorker, CancellationToken cancellationToken = default(CancellationToken));
+
+        Task<(ProviderWorker providerWorker, RepositoryOutcomeAction outcomeAction, object error)> PatchAsync(string providerId, string id, JsonPatchDocument<ProviderWorker> providerWorkerPatch, CancellationToken cancellationToken = default(CancellationToken));
     }
 }
